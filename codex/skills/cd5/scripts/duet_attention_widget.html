@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Внимание · разъяснение по запросу</title></head><body>
+<section id="legacy-probe" hidden><!--LEGACY-PROBE--></section>
+<main id="attention-card" hidden>
+  <button id="attention-icon" type="button" aria-label="Разъяснить отмеченную проблему">
+    <svg xmlns="http://www.w3.org/2000/svg" width="240" height="180" viewBox="0 0 240 180" aria-hidden="true">
+      <g transform="translate(16 4) scale(.87)"><path d="M119 18c9 0 16 5 21 14l76 126c7 12-2 26-16 26H40c-14 0-23-14-16-26L98 32c5-9 12-14 21-14z" fill="#f4b740" stroke="#9a5a08" stroke-width="7" stroke-linejoin="round"/>
+      <path d="M120 61v53" stroke="#33220c" stroke-width="15" stroke-linecap="round"/><circle cx="120" cy="139" r="9" fill="#33220c"/></g>
+    </svg>
+  </button>
+  <p id="event-title"></p>
+  <p id="event-question" hidden></p>
+  <p id="event-meta" hidden></p>
+  <button id="explain-button" type="button" disabled>Разъяснить и создать MD</button>
+  <p id="attention-status" role="status" aria-live="polite"></p>
+</main>
+<style>
+  :root{color-scheme:light dark}body{margin:0;background:transparent;color:inherit;font:15px system-ui,sans-serif}
+  [hidden]{display:none!important}#attention-card{padding:8px 12px;max-width:680px}
+  #attention-icon{display:block;background:transparent;border:0;padding:0;cursor:pointer;border-radius:14px}
+  #attention-icon svg{display:block;width:240px;height:180px;max-width:100%;filter:drop-shadow(0 3px 5px #0002)}
+  #attention-icon:focus-visible,#explain-button:focus-visible{outline:3px solid #e3a229;outline-offset:4px}
+  #event-title{margin:8px 0 8px;font-weight:700;font-size:20px;line-height:1.4;overflow-wrap:anywhere}
+  #event-question{margin:0 0 12px;font-size:18px;font-weight:600;line-height:1.45;overflow-wrap:anywhere}
+  #event-meta{margin:0 0 12px;font-size:13px;opacity:.8;overflow-wrap:anywhere}
+  #explain-button{font:600 15px system-ui;padding:11px 17px;border:1px solid #b8770c;border-radius:10px;background:#eeb43f;color:#251b09;cursor:pointer}
+  #explain-button:hover{background:#ffc85d}#explain-button:disabled{opacity:.6;cursor:default}
+  #attention-status{min-height:1.4em;margin:9px 0 0;font-size:12px;opacity:.8}
+</style>
+<script>
+(()=>{
+  let card=null,seq=9000,busy=false,submitted=false,hostReady=false;
+  const pending=new Map(),status=document.getElementById('attention-status');
+  const button=document.getElementById('explain-button'),icon=document.getElementById('attention-icon');
+  function rpc(method,params){
+    return new Promise((resolve,reject)=>{
+      const id=++seq,timer=setTimeout(()=>{pending.delete(id);reject({message:'Хост не подтвердил действие. Запрос не повторён автоматически.'})},10000);
+      pending.set(id,{resolve,reject,timer});window.parent.postMessage({jsonrpc:'2.0',id,method,params},'*');
+    });
+  }
+  function render(data){
+    if(!data)return;
+    if(data.mode!=='duet-attention'){document.getElementById('legacy-probe').hidden=false;return;}
+    if(!/^[A-Za-z0-9_.:-]{1,160}$/.test(data.event_id)||typeof data.request_prompt!=='string')return;
+    card=data;document.getElementById('legacy-probe').hidden=true;document.getElementById('attention-card').hidden=false;
+    document.getElementById('event-title').textContent=data.title;
+    if(data.ready===false){document.getElementById('event-question').textContent=data.question||'';document.getElementById('event-question').hidden=!data.question;button.hidden=true;status.textContent='Этот элемент больше не является открытым вопросом.';return;}
+    const question=document.getElementById('event-question'),meta=document.getElementById('event-meta');
+    question.hidden=typeof data.question!=='string'||!data.question.trim();if(!question.hidden)question.textContent=data.question;
+    meta.hidden=!data.question;if(!meta.hidden){const owner=data.owner||{},state=data.status==='blocking'?'ожидает ответа, блокирует':'ожидает ответа';meta.textContent='Статус: '+state+' · Владелец: '+String(owner.role||'неизвестен')+(data.diagnostic?' · '+String(data.diagnostic):'');}
+    button.textContent=data.question?'Разъяснить вопрос':'Разъяснить и создать MD';
+    button.disabled=!hostReady||busy||submitted;
+  }
+  window.addEventListener('message',event=>{
+    if(event.source!==window.parent)return;const m=event.data;if(!m||m.jsonrpc!=='2.0')return;
+    if(pending.has(m.id)&&('result' in m||'error' in m)){const p=pending.get(m.id);pending.delete(m.id);clearTimeout(p.timer);m.error?p.reject(m.error):p.resolve(m.result);return;}
+    if(m.method==='ui/notifications/tool-result')render(m.params?.structuredContent);
+  });
+  async function explain(){
+    if(!card||card.ready===false||busy||submitted||!hostReady)return;busy=true;button.disabled=true;icon.disabled=true;status.textContent='Отправляем запрос на разъяснение…';
+    try{
+      await rpc('ui/message',{role:'user',content:[{type:'text',text:card.request_prompt}]});
+      submitted=true;status.textContent='Запрос отправлен. Разъяснение появится в этом чате.';
+    }catch(e){
+      if(e.code===-32601&&typeof window.openai?.sendFollowUpMessage==='function'){
+        try{await window.openai.sendFollowUpMessage({prompt:card.request_prompt,title:'Разъяснить: '+card.title});submitted=true;status.textContent='Запрос отправлен. Разъяснение появится в этом чате.';}
+        catch(inner){status.textContent='Не удалось отправить запрос: '+String(inner.message||inner);}
+      }else status.textContent='Не удалось подтвердить отправку: '+String(e.message||e);
+    }finally{busy=false;button.disabled=submitted;icon.disabled=submitted;}
+  }
+  button.addEventListener('click',explain);icon.addEventListener('click',explain);
+  rpc('ui/initialize',{protocolVersion:'2026-01-26',appInfo:{name:'Duet attention',version:'1.0.0'},appCapabilities:{}})
+    .then(()=>{hostReady=true;window.parent.postMessage({jsonrpc:'2.0',method:'ui/notifications/initialized',params:{}},'*');render(window.openai?.toolOutput||card);})
+    .catch(()=>{if(typeof window.openai?.sendFollowUpMessage==='function'){hostReady=true;render(window.openai.toolOutput||card);}else status.textContent='Канал отправки сообщений недоступен; карточка ещё не готова.';});
+  if(window.openai?.toolOutput)render(window.openai.toolOutput);
+})();
+</script></body></html>

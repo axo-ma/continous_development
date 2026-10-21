@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+.venv/
+dist/
+skill-backups/
+.cd5/
+coordination/
+sessions/
+settings.local.json
+codex/.test-*/
+codex/.portable-test-*/
+codex/.skill-tests-*/

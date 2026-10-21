@@ -1,0 +1,9 @@
+# Participant accounting
+
+For each launch retain logical task_id, immediate parent thread/agent identity, actual model/effort, and bounded assignment. On completion the caller reports helper work, verification and measured usage/unknowns in a compact manifest. A helper's direct parent must be a permitted main role; no deeper delegation. Reused sessions and whole conversational turns are not automatically one logical task. No full transcript is needed in the primary context.
+
+Account quota and task tokens are different measurements. Check fresh quota before substantive launches and between bounded units under the project's policy. In CD5 with quota gate90, stop new substantive work at 90% of the five-hour window. Running calls may finish beyond a threshold: this is admission control, not a provider-enforced cap. Unknown quota does not override a required gate.
+
+Cached input, uncached input and output are separate columns; reasoning is part of output. Local inference stays separate. Do not sum parent and child counters until inclusion semantics are verified. Missing task boundaries or reset counters make attribution partial/unknown. A token snapshot is not necessarily a new request, cumulative input is not context-window occupancy, and turn elapsed time includes waits. Report tool/agent/human wait and active time only when independently measured.
+
+CD5's optional task_ledger.py and task_telemetry.py implement evidence-backed task accounting, including verified nested helper ancestry. MAC alone needs only the native launch/result metadata and compact manifest; it does not require CD5 files or an extra persistent registry.

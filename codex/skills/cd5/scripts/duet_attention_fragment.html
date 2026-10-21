@@ -1,0 +1,36 @@
+<section id="__ROOT_ID__">
+  <button type="button" class="btn btn-ghost" data-action="explain-icon" aria-label="Разъяснить отмеченную проблему">
+    <img src="__ICON_DATA_URI__" width="240" height="180" alt="Внимание" />
+  </button>
+  <p data-label="title"></p>
+  <button type="button" class="btn btn-primary" data-action="explain">Разъяснить и создать MD</button>
+  <p class="text-small text-muted" data-label="status" role="status" aria-live="polite"></p>
+</section>
+<script>
+(() => {
+  const root = document.getElementById('__ROOT_ID__');
+  const event = __EVENT_JSON__;
+  root.querySelector('[data-label="title"]').textContent = event.title;
+  let busy = false;
+  async function explain() {
+    if (busy) return;
+    const status = root.querySelector('[data-label="status"]');
+    if (typeof window.openai?.sendFollowUpMessage !== 'function') {
+      status.textContent = 'Отправка недоступна в этом просмотре. Откройте карточку в чате.';
+      return;
+    }
+    busy = true;
+    try {
+      await window.openai.sendFollowUpMessage({
+        prompt: event.request_prompt,
+        title: 'Разъяснить: ' + event.title
+      });
+      status.textContent = 'Запрос передан приложению.';
+    } catch (error) {
+      status.textContent = 'Запрос не подтверждён: ' + String(error.message || error);
+    } finally { busy = false; }
+  }
+  root.querySelector('[data-action="explain"]').addEventListener('click', explain);
+  root.querySelector('[data-action="explain-icon"]').addEventListener('click', explain);
+})();
+</script>

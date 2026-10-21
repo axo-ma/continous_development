@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="180" viewBox="0 0 240 180" role="img" aria-labelledby="title desc">
+<title id="title">Внимание</title><desc id="desc">Крупный янтарный знак восклицания</desc>
+
+<g transform="translate(16 4) scale(.87)"><path d="M119 18c9 0 16 5 21 14l76 126c7 12-2 26-16 26H40c-14 0-23-14-16-26L98 32c5-9 12-14 21-14z" fill="#f4b740" stroke="#9a5a08" stroke-width="7" stroke-linejoin="round"/>
+<path d="M120 61v53" stroke="#33220c" stroke-width="15" stroke-linecap="round"/>
+<circle cx="120" cy="139" r="9" fill="#33220c"/>
+</g></svg>
