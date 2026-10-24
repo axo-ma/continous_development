@@ -148,8 +148,11 @@ class EvalHarnessTests(unittest.TestCase):
         self.assertFalse((folder/'transcript.jsonl').exists())
         with self.assertRaises(SystemExit):
             run_eval.main(['run', '--out', str(self.temp/'inside'), '--version', 'claude'])
-        with mock.patch.object(run_eval, 'inside_repository', lambda path: False), self.assertRaises(SystemExit):
-            run_eval.main(['run', '--out', str(out/'x'), '--version', 'codex'])
+        with mock.patch.object(run_eval, 'inside_repository', lambda path: False):
+            run_eval.main(['run', '--out', str(out/'x'), '--version', 'codex', '--scenario', 'S01', '--repeat', '1'])
+        codex = out/'x/S01/codex-1/project'
+        self.assertFalse((codex/'.codex').exists())  # without --codex-bundle: the installed Codex skills
+        self.assertIn('--setting-sources', json.loads((folder/'command.json').read_text(encoding='utf-8')))
 
     def test_report_shows_what_broke_in_the_port(self):
         out = self.temp/'report'

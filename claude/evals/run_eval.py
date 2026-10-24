@@ -48,8 +48,9 @@ def install_codex(project, bundle):
 
 def command(version, project, prompt, model=None):
     if version == 'claude':
+        # Project settings only: the user's own skills and settings stay out of the run.
         line = ['claude', '-p', prompt, '--output-format', 'stream-json', '--verbose',
-                '--permission-mode', 'bypassPermissions']
+                '--permission-mode', 'bypassPermissions', '--setting-sources', 'project']
     else:
         line = ['codex', 'exec', '--json', '--skip-git-repo-check', '--sandbox', 'workspace-write',
                 '-C', str(project), prompt]
@@ -69,7 +70,11 @@ def inside_repository(path):
 def prepare_run(folder, scenario, version, bundles):
     project = folder/'project'
     before = scenarios.prepare(scenario, project, BUNDLE/'skills/cd5/scripts')
-    (install_claude if version == 'claude' else install_codex)(project, bundles[version])
+    if version == 'claude':
+        install_claude(project, bundles['claude'])
+    elif bundles.get('codex'):
+        install_codex(project, bundles['codex'])
+    # Without --codex-bundle Codex uses the skills installed in its own home (the version in real use).
     (folder/'before.json').write_text(json.dumps(before, ensure_ascii=False, indent=1), encoding='utf-8')
     return project
 
@@ -84,15 +89,20 @@ def check_run(folder, scenario, version):
     return result
 
 
+def agent_environment():
+    """The agent finds the same Python that runs this script (the skills' scripts need one)."""
+    environment = os.environ.copy()
+    environment['PATH'] = str(Path(sys.executable).parent) + os.pathsep + environment.get('PATH', '')
+    environment['PYTHONUTF8'] = '1'
+    return environment
+
+
 def do_run(args):
     out = Path(args.out).resolve()
     if inside_repository(out):
         raise SystemExit('--out must be outside any git repository: %s' % out)
-    bundles = {'claude': BUNDLE}
-    if 'codex' in args.version:
-        if not args.codex_bundle:
-            raise SystemExit('--codex-bundle <path to the codex/ folder> is required for the codex version')
-        bundles['codex'] = Path(args.codex_bundle).resolve()
+    bundles = {'claude': BUNDLE, 'codex': Path(args.codex_bundle).resolve() if args.codex_bundle else None}
+    executables = {'claude': args.claude_exe or 'claude', 'codex': args.codex_exe or 'codex'}
     for scenario in selected(args.scenario):
         for version in args.version:
             if version not in scenario.versions:
@@ -108,14 +118,14 @@ def do_run(args):
                 if not args.confirm_spend:
                     print('prepared', folder)
                     continue
-                executable = shutil.which(line[0])
+                executable = shutil.which(executables[version])
                 if not executable:
-                    raise SystemExit('%s is not on PATH' % line[0])
+                    raise SystemExit('%s not found; pass --%s-exe' % (executables[version], version))
                 with open(folder/'transcript.jsonl', 'w', encoding='utf-8') as log, \
                         open(folder/'stderr.txt', 'w', encoding='utf-8') as errors:
                     try:
-                        subprocess.run([executable, *line[1:]], cwd=project, stdout=log, stderr=errors,
-                                       timeout=args.timeout, env=os.environ.copy())
+                        subprocess.run([executable, *line[1:]], cwd=project, stdin=subprocess.DEVNULL,
+                                       stdout=log, stderr=errors, timeout=args.timeout, env=agent_environment())
                     except subprocess.TimeoutExpired:
                         errors.write('timeout after %ss\n' % args.timeout)
                 result = check_run(folder, scenario, version)
@@ -185,7 +195,9 @@ def main(argv=None):
     run.add_argument('--version', nargs='+', choices=VERSIONS, default=list(VERSIONS))
     run.add_argument('--scenario', nargs='*')
     run.add_argument('--repeat', type=int, default=2)
-    run.add_argument('--codex-bundle', help='path to the codex/ folder of the canonical repository')
+    run.add_argument('--codex-bundle', help='codex/ folder to install into each project; default: Codex uses its installed skills')
+    run.add_argument('--claude-exe', help='path to claude.exe when it is not on PATH')
+    run.add_argument('--codex-exe', help='path to codex.exe when it is not on PATH')
     run.add_argument('--model')
     run.add_argument('--timeout', type=int, default=900)
     run.add_argument('--confirm-spend', action='store_true', help='actually start the agents')
