@@ -103,6 +103,8 @@ def _units(rows):
             if 'budget' in p:
                 units[key]['budget'] = budgeting.apply_patch(units[key]['budget'], p['budget'], at=stamp,
                                                              event_id=row['id'], initial=True)
+            if 'forecast_unknown_reason' in p:
+                units[key]['budget']['forecast_unknown_reason'] = p['forecast_unknown_reason']
             continue
         if key not in units:
             raise ValueError('Control Unit event has no open event: '+key)
@@ -176,6 +178,10 @@ def record(root, data, caller_thread_id):
                                     'model': data.get('model'), 'reasoning': data.get('reasoning')})
         if 'forecast' in data or 'limit' in data:
             payload['budget'] = budget_patch()
+        if 'forecast_unknown_reason' in data:
+            if data.get('forecast') is not None:
+                raise ValueError('supply a forecast range or an unknown reason, not both')
+            payload['forecast_unknown_reason'] = _text(data['forecast_unknown_reason'], 'forecast unknown reason', True, 4096)
     elif action == 'status':
         if data.get('status') not in STATES:
             raise ValueError('invalid status')
@@ -209,6 +215,9 @@ def _append(root, payload, event_id, at, caller):
         historical = payload.get('historical') is True
         if payload['action'] == 'status':
             historical = _units(rows).get(payload['cu_id'], {}).get('historical', False)
+        if not old and not historical and payload['action'] == 'open':
+            if not payload.get('budget', {}).get('forecast') and not payload.get('forecast_unknown_reason'):
+                raise ValueError('new CU requires a forecast range or forecast_unknown_reason; CLI: --forecast-low and --forecast-high, or --forecast-unknown-reason "short reason"; no WU limit is required')
         if payload['action'] in {'open', 'status'} and not historical:
             if old:
                 if 'auto_anchor' in old['payload']:
@@ -220,6 +229,15 @@ def _append(root, payload, event_id, at, caller):
                     from cu_auto_telemetry import capture_anchor
                 anchor = capture_anchor(root, caller)
                 if anchor is not None:
+                    if payload['action'] == 'open' or payload.get('status') == 'open':
+                        conflicts = sorted({r['payload']['cu_id'] for r in rows
+                            if r['payload']['cu_id'] != payload['cu_id']
+                            and isinstance(r['payload'].get('auto_anchor'), dict)
+                            and r['payload']['auto_anchor'].get('thread_id') == anchor.get('thread_id')
+                            and r['payload']['auto_anchor'].get('turn_id') == anchor.get('turn_id')})
+                        if conflicts:
+                            raise ValueError('this owner turn already belongs to CU '+', '.join(conflicts)+
+                                '; continue that CU or begin the next CU in a new user turn so factual usage can be attributed')
                     payload['auto_anchor'] = anchor
         payload = {**payload, 'at': _stamp(at or (old['payload']['at'] if old else None)),
                    'sequence': old['payload']['sequence'] if old else max((r['payload'].get('sequence', 0) for r in rows), default=0)+1}
@@ -372,6 +390,7 @@ def main(argv=None):
     begin = sub.add_parser('begin', help='Open one user-facing work unit; capture its current owner turn automatically')
     begin.add_argument('--cu', required=True); begin.add_argument('--title', required=True); begin.add_argument('--goal')
     begin.add_argument('--caller-thread', required=True); begin.add_argument('--source')
+    begin.add_argument('--forecast-unknown-reason', help='Why no defensible forecast is available before work')
     budget = sub.add_parser('budget', help='Revise forecast or an independently authorized whole-team WU limit')
     budget.add_argument('--cu', required=True); budget.add_argument('--caller-thread', required=True)
     budget.add_argument('--event-id', required=True); budget.add_argument('--reason', required=True)
@@ -404,6 +423,10 @@ def main(argv=None):
         if args.command in {'begin', 'finish'}:
             data = {'cu_id': args.cu, 'event_id': args.command+'-'+args.cu}
             if args.command == 'begin':
+                if fields.get('forecast') is None and not args.forecast_unknown_reason:
+                    raise ValueError('begin requires --forecast-low and --forecast-high, or --forecast-unknown-reason "short reason"; no WU limit is required')
+                if args.forecast_unknown_reason:
+                    fields['forecast_unknown_reason'] = args.forecast_unknown_reason
                 data.update(action='open', title=args.title, goal=args.goal or args.title, **fields)
             else:
                 data.update(action='status', status='completed', result=args.result)

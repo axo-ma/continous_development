@@ -88,6 +88,29 @@ class AutoTelemetryTests(unittest.TestCase):
             handle.write(json.dumps(event('task_complete', 9, turn_id='one', duration_ms=4000)) + '\n')
         self.assertIsNone(auto.capture_anchor(self.root, 'hq'))
 
+    def test_native_archive_move_keeps_hash_verified_attribution(self):
+        # Synthetic native journal: metadata identity differs from session_id.
+        home = self.root / 'native'
+        active = home / 'sessions'
+        archived = home / 'archived_sessions'
+        active.mkdir(parents=True); archived.mkdir()
+        path = self.session(rows=[snapshot(100, 0), *turn('one', 5)])
+        original = active / 'rollout-hq.jsonl'
+        path.replace(original)
+        events = self.bounded(original)
+        destination = archived / original.name
+        original.replace(destination)
+        with patch.dict('os.environ', {'CODEX_HOME': str(home)}), patch.object(auto, '_settings', return_value={}):
+            unit = auto.enrich_report(self.root, self.data(), events)['units'][0]
+            self.assertEqual(unit['usage_status'], 'complete')
+            self.assertEqual(unit['participants'][0]['telemetry_provenance']['source_file'], str(destination))
+            # A second copy makes source identity ambiguous; never pick one.
+            original.write_bytes(destination.read_bytes())
+            self.assertEqual(auto.enrich_report(self.root, self.data(), events)['units'][0]['usage_status'], 'unknown')
+            original.unlink()
+            destination.write_text(destination.read_text().replace('"input_tokens": 100', '"input_tokens": 120'))
+            self.assertEqual(auto.enrich_report(self.root, self.data(), events)['units'][0]['usage_status'], 'unknown')
+
     def test_repeated_reads_are_exact_readonly_and_closing_turn_is_full(self):
         path = self.session(rows=[snapshot(100, 0), *turn('one', 5), snapshot(140, 10)])
         source = self.data(); original = copy.deepcopy(source)

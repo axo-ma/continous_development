@@ -1,15 +1,21 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1150" viewBox="0 0 1800 1150" role="img" aria-labelledby="title desc">
 <title id="title">Пример отчёта о прогрессе CD5</title>
-<desc id="desc">Иллюстрация на вымышленных данных: четыре CU, раскрытая команда и прогноз, лимит, факт WU. Не скриншот пользовательского проекта.</desc>
+<desc id="desc">Иллюстрация на вымышленных данных: четыре CU, раскрытая команда и KNOWLEDGE, ATTENTION и план–факт WU. Не скриншот пользовательского проекта.</desc>
 <rect x="0" y="0" width="1800" height="1150" fill="#171d26"/>
 <text x="50" y="70" fill="#e8edf5" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="38">Прогресс проекта</text>
-<text x="50" y="111" fill="#a7b3c6" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="23">Иллюстрация интерфейса · вымышленные данные · 21.10.2026</text>
+<text x="50" y="111" fill="#a7b3c6" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="23">Иллюстрация интерфейса · вымышленные данные · 23.10.2026</text>
 <text x="50" y="148" fill="#a7b3c6" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="22">Время — измеренные ходы штаба, включая ожидания</text>
 <rect x="50" y="179" width="180" height="46" fill="#202936"/>
 <text x="65" y="211" fill="#a7b3c6" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="23">← Новее</text>
 <text x="258" y="211" fill="#e8edf5" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="23">Записи 1–4 из 4</text>
 <rect x="520" y="179" width="190" height="46" fill="#202936"/>
 <text x="535" y="211" fill="#a7b3c6" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="23">Раньше →</text>
+<rect x="770" y="179" width="240" height="46" fill="#202936"/>
+<text x="782" y="211" fill="#9bc0ff" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="22">План проекта</text>
+<rect x="1030" y="179" width="360" height="46" fill="#202936"/>
+<text x="1042" y="211" fill="#9bc0ff" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="22">KNOWLEDGE · Знания</text>
+<rect x="1410" y="179" width="340" height="46" fill="#202936"/>
+<text x="1422" y="211" fill="#9bc0ff" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="22">ATTENTION · Внимание</text>
 <rect x="50" y="250" width="1700" height="52" fill="#202936"/>
 <text x="65" y="285" fill="#a7b3c6" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="23">№</text>
 <text x="190" y="285" fill="#a7b3c6" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="23">Запуск МСК</text>
@@ -26,9 +32,8 @@
 <text x="850" y="349" fill="#9bc0ff" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="22">Отчёт готов</text>
 <text x="1260" y="349" fill="#e8edf5" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="22">2 мин</text>
 <text x="1395" y="349" fill="#9bc0ff" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="22">↓ Команда</text>
-<text x="1570" y="330" fill="#e8edf5" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="21">Прогноз 3–6</text>
-<text x="1570" y="361" fill="#a7b3c6" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="21">Лимит 8</text>
-<text x="1570" y="394" fill="#e8edf5" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="23">Факт 4,81</text>
+<text x="1570" y="342" fill="#e8edf5" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="21">План 3–6</text>
+<text x="1570" y="384" fill="#e8edf5" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="23">Факт 4,81</text>
 <path d="M50 412H1750" stroke="#3a475b"/>
 <rect x="50" y="412" width="1700" height="250" fill="#253247"/>
 <text x="82" y="453" fill="#e8edf5" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="25">Команда · CU-012</text>
@@ -73,9 +78,8 @@
 <text x="850" y="709" fill="#9bc0ff" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="22">Проверки пройдены</text>
 <text x="1260" y="709" fill="#e8edf5" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="22">2 мин</text>
 <text x="1395" y="709" fill="#9bc0ff" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="22">› Команда</text>
-<text x="1570" y="690" fill="#e8edf5" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="21">Прогноз 2–4</text>
-<text x="1570" y="721" fill="#a7b3c6" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="21">Лимит —</text>
-<text x="1570" y="754" fill="#e8edf5" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="23">Факт 2,40</text>
+<text x="1570" y="702" fill="#e8edf5" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="21">План 2–4</text>
+<text x="1570" y="744" fill="#e8edf5" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="23">Факт 2,40</text>
 <path d="M50 772H1750" stroke="#3a475b"/>
 <rect x="50" y="772" width="1700" height="110" fill="#202936"/>
 <rect x="1540" y="772" width="210" height="110" fill="#253247"/>
@@ -85,9 +89,8 @@
 <text x="850" y="819" fill="#9bc0ff" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="22">Инструкция обновлена</text>
 <text x="1260" y="819" fill="#e8edf5" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="22">2 мин</text>
 <text x="1395" y="819" fill="#9bc0ff" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="22">› Команда</text>
-<text x="1570" y="800" fill="#e8edf5" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="21">Прогноз 1–2</text>
-<text x="1570" y="831" fill="#a7b3c6" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="21">Лимит —</text>
-<text x="1570" y="864" fill="#e8edf5" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="23">Факт 1,35</text>
+<text x="1570" y="812" fill="#e8edf5" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="21">План 1–2</text>
+<text x="1570" y="854" fill="#e8edf5" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="23">Факт 1,35</text>
 <path d="M50 882H1750" stroke="#3a475b"/>
 <rect x="50" y="882" width="1700" height="110" fill="#202936"/>
 <rect x="1540" y="882" width="210" height="110" fill="#253247"/>
@@ -97,9 +100,8 @@
 <text x="850" y="929" fill="#9bc0ff" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="22">Ошибка исправлена</text>
 <text x="1260" y="929" fill="#e8edf5" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="22">2 мин</text>
 <text x="1395" y="929" fill="#9bc0ff" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="22">› Команда</text>
-<text x="1570" y="910" fill="#e8edf5" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="21">Прогноз 2–3</text>
-<text x="1570" y="941" fill="#a7b3c6" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="21">Лимит —</text>
-<text x="1570" y="974" fill="#e8edf5" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="23">Факт 3,60</text>
+<text x="1570" y="922" fill="#e8edf5" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="21">План 2–3</text>
+<text x="1570" y="964" fill="#e8edf5" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="23">Факт 3,60</text>
 <path d="M50 992H1750" stroke="#3a475b"/>
 <text x="65" y="1040" fill="#e8edf5" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="25">Факт по всей выбранной истории · 4 CU</text>
 <text x="1570" y="1040" fill="#e8edf5" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="25">12,16</text>

@@ -30,7 +30,7 @@ Stable event IDs make retries idempotent; changing an event requires a new ID. O
 
 ## Accounting
 
-CU planning may also carry a [WU forecast and separate limit](wu-budgets.md). Both are whole-team values, optional and revisioned; neither replaces factual usage. Show forecast/limit/actual in the report and preserve the original estimate for calibration.
+CU planning may also carry a [WU forecast and separate limit](wu-budgets.md). Both are whole-team values, optional and revisioned; neither replaces factual usage. The user-facing report shows plan (forecast) and actual WU; it does not display limits or limit comparisons, including in CU details. Preserve existing limit records and the original forecast in the underlying event history.
 
 The normal path is [automatic usage](automatic-usage.md). CU open/status records capture an owner-turn anchor; the progress reader derives usage from verified journals without extra measurement events or manual mapping files. The explicit mapping API below remains for exceptional/historical sources and established manual measurements.
 
@@ -41,6 +41,12 @@ One source interval cannot be attributed twice or to multiple CUs. Identical rei
 The Progress Report displays **Work Units (WU)** in its main cost column and keeps the exact three token columns inside the expanded team. Read [work units](work-units.md) when interpreting or changing the dated base-cost estimator. It is not subscription usage or a scheduling budget; model/coverage unknowns must remain visible.
 
 Elapsed CU lifetime, measured elapsed turns and active computing time are different. The report labels them; night pauses must not be called work. Do not sum parallel agents' elapsed times into task duration. A token snapshot count is not a request count. This version collects explicit mappings; it does not intercept arbitrary model calls or automatically guess task boundaries.
+
+## Project memory access
+
+A visible plan control opens a readable snapshot of the configured OUTLINE.md. KNOWLEDGE and ATTENTION controls must also be present even when CU history is empty. KNOWLEDGE opens saved findings with search and pages, preserving record types, limitations and source references. ATTENTION separates open questions from closed history. The report loads these current memory snapshots automatically with `--root`, independently of CU date filters. Missing, malformed and partial sources have visible diagnostics; they must not appear as empty registers. Viewing does not accept findings, resolve questions, send messages or authorize work. These are generated snapshots, refreshed by invoking the report again.
+
+The report displays plan and actual WU only, including CU details. Existing limit history remains in canonical data but is not displayed. Missing forecasts have an explicit explanation. Individually measured participants may be shown when the team total is unknown; never sum participants without proven independent scopes.
 
 ## User invocation
 

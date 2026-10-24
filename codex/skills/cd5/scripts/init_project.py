@@ -5,6 +5,9 @@ from pathlib import Path
 from cd5_config import FILES, memory_dir, memory_map
 
 
+OUTLINE_TEMPLATE = '## Product or task context\n\nDescribe the broader context.\n\n## Project task and scope\n\nDefine this contribution and exclusions.\n\n## Expected result\n\nDefine the output and decision it enables.\n\n## Constraints\n\nState project conditions that affect the solution.\n\n## Risks\n\nIdentify threats to feasibility, acceptable cost or approach, their grounds and response; order dependent work accordingly.\n\n## Milestones\n\n### MS-01. Define the sufficient result\n\n**Status:** planned\n\n**Result:** awaiting definition\n\n**Entry:** awaiting definition\n\n**Criteria:** awaiting definition before dependent work\n\n## Current milestone plan MS-01\n\nDefine what is closed and remains, main questions, order and dependencies. Exact next action belongs in CHECKPOINT.\n'
+
+
 def initialize(root, task, owner, memory='coordination/cd5', owner_role='hq'):
     root = Path(root).resolve(strict=True)
     configuration = root/'.cd5/config.json'
@@ -26,7 +29,7 @@ def initialize(root, task, owner, memory='coordination/cd5', owner_role='hq'):
           'next_action': {'kind': 'wait_user'}, 'continuity': {'quota_stop_used_percent': 90},
           'cd5': {'enabled': True}}
     for kind, filename in FILES.items():
-        content = '# '+task+'\n\n## Goal\n\nDefine the goal and scope.\n\n## Risks\n\nIdentify and address risks before execution.\n\n## Milestones\n\n- [ ] `MS-01` — Define sufficient result\n  - status: not_started\n  - criteria: awaiting definition\n' if kind == 'outline' else ''
+        content = ('# '+task+'\n\n' + OUTLINE_TEMPLATE) if kind == 'outline' else ''
         if kind == 'checkpoint':
             content = json.dumps(cp, indent=2)+'\n'
         (path/filename).write_text(content, encoding='utf-8')

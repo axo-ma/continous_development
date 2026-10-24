@@ -16,6 +16,57 @@ SPEC.loader.exec_module(report)
 
 
 class ReportTests(unittest.TestCase):
+    @unittest.skipUnless(shutil.which('node'), 'Node is optional for safe Markdown checks')
+    def test_markdown_blocks_are_structured_and_never_execute_html_or_schemes(self):
+        template = Path(report.__file__).with_suffix('.html').read_text(encoding='utf-8')
+        functions = 'function safeLink(' + template.split('function safeLink(', 1)[1].split('let returnFocus=', 1)[0]
+        script = r'''
+const assert=require('node:assert/strict');
+class Node{constructor(tag,text=''){this.tag=tag;this.own=String(text);this.children=[];this.style={};this.attributes={};this.listeners={};}append(...nodes){for(let node of nodes){if(typeof node==='string')node=new Node('#text',node);node.parentElement=this;this.children.push(node);}}set textContent(value){this.own=String(value);this.children=[];}get textContent(){return this.own+this.children.map(n=>n.textContent).join('');}setAttribute(key,value){this.attributes[key]=value;}replaceChildren(...nodes){this.children=[];this.own='';this.append(...nodes);}addEventListener(key,fn){this.listeners[key]=fn;}remove(){}focus(){this.focused=true;}}
+const document={createElement:tag=>new Node(tag),createTextNode:text=>new Node('#text',text)};
+function element(tag,text,cls){const node=document.createElement(tag);if(text!==undefined)node.textContent=text;if(cls)node.className=cls;return node;}
+function time(value){return value||'—';}
+function find(node,tag){return [...(node.tag===tag?[node]:[]),...node.children.flatMap(child=>find(child,tag))];}
+''' + functions + r'''
+const rendered=markdown(__MARKDOWN__);
+assert.equal(find(rendered,'h1').length,1);
+assert(find(rendered,'p').some(p=>p.textContent==='A soft wrapped strong and e safe.'));
+assert.equal(find(rendered,'strong').length,1);assert.equal(find(rendered,'em').length,1);
+assert.equal(find(rendered,'ol')[0].children.length,2);assert.equal(find(rendered,'ul').length,1);
+assert.equal(find(rendered,'table').length,1);assert.equal(find(rendered,'th').length,2);assert.equal(find(rendered,'td').length,2);
+assert.equal(find(rendered,'pre')[0].textContent,'<script>alert(1)</script>');
+assert.equal(find(rendered,'script').length,0);
+assert.equal(find(rendered,'a')[0].href,'https://example.com');
+const hostile=markdown('[run](javascript:alert(1)) [data](data:text/html,evil) ![remote](https://example.com/image.png) <img src=x onerror=alert(1)>');
+assert.equal(find(hostile,'a').length,0);assert.equal(find(hostile,'img').length,0);
+assert(hostile.textContent.includes('<img src=x onerror=alert(1)>'));
+assert.equal(humanText(false),'Нет');assert.equal(humanText(0),'0');assert.equal(humanText({internal_secret:'not for display'}),'');
+const record=projectRecord({title:'Saved',text:'**Finding**\ncontinued',limitations:'[bad](javascript:alert(1))',sources:[{id:'E1'}]},'knowledge');
+assert.equal(find(record,'strong').filter(n=>n.textContent==='Finding').length,1);assert.equal(find(record,'a').length,0);assert(record.textContent.includes('E1'));
+let overview=null;const root={querySelector(selector){if(selector==='.project-overview')return overview;if(selector==='header')return {after(node){overview=node;}};throw Error(selector);}};
+let data={checkpoint:{status:'available',state:{user_stop:false,milestone:0}},attention:{status:'available',open:[{id:'old',title:'Old unresolved',question:'Still waiting',created_at:'2000-01-01',requires_user:null}],history:[{title:'Closed',status:'closed'}]},knowledge:{status:'available',entries:Array.from({length:12},(_,i)=>({title:'Finding '+i,text:'Saved text '+i}))}};
+__PAGE_STATE__
+renderProject();
+assert(overview.textContent.includes('Still waiting'));assert(overview.textContent.includes('Закрыто'));
+assert(!overview.textContent.includes('Нужен ответ пользователя'));assert(overview.textContent.includes('Нет'));assert(overview.textContent.includes('0'));
+const knowledge=overview.children[2];assert.equal(find(knowledge,'article').length,10);
+const pager=find(knowledge,'nav')[0];assert.equal(pager.children[0].disabled,true);assert.equal(pager.children[2].disabled,false);
+pager.children[2].listeners.click();assert.equal(find(knowledge,'article').length,2);assert(knowledge.textContent.includes('Finding 11'));assert.equal(pager.children[2].disabled,true);
+const search=find(knowledge,'input')[0];search.value='Finding 11';search.listeners.input();assert.equal(find(knowledge,'article').length,1);search.value='missing';search.listeners.input();assert.equal(find(knowledge,'article').length,0);
+assert.equal(knowledge.hidden,true);const controls=overview.children[3];controls.children[1].listeners.click();assert.equal(knowledge.hidden,false);assert.equal(controls.children[1].attributes['aria-expanded'],'true');
+const panelNodes=Object.fromEntries(['panel-title','panel-content','panel','shade','close'].map(id=>[id,new Node('div')]));
+const byId=id=>panelNodes[id];let returnFocus=null;const trigger=new Node('button');
+openOutline(trigger);assert(panelNodes['panel-content'].textContent.includes('План проекта не приложен'));assert.equal(panelNodes.close.focused,true);
+data={outline_snapshot:{status:'available',markdown:'# Legacy plan'}};
+openOutline(trigger);assert.equal(find(panelNodes['panel-content'],'h1')[0].textContent,'Legacy plan');
+'''
+        sample = "# Heading\n\nA soft\nwrapped **strong** and *e* [safe](https://example.com).\n\n1. first\n   - nested\n2. second\n\n| Name | Value |\n| --- | ---: |\n| item | `code` |\n\n```html\n<script>alert(1)</script>\n```"
+        script = script.replace('__MARKDOWN__', json.dumps(sample))
+        page_helper = 'function pageState(' + template.split('function pageState(', 1)[1].split('function renderView(', 1)[0]
+        script = script.replace('__PAGE_STATE__', page_helper)
+        result = subprocess.run([shutil.which('node'), '-e', script], capture_output=True, text=True, encoding='utf-8')
+        self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_utc_z_dates_work_with_python310_parser_contract(self):
         base_datetime = report.dt.datetime
         class StrictISO(base_datetime):
@@ -260,9 +311,9 @@ function time(value){return value||'—';}
 function texts(node){return [node.text??'',...node.children.flatMap(texts)];}
 ''' + functions + '''
 const unit={budget:{forecast:{low:'3',high:'6',confidence:'medium'},limit:'8',original_forecast:{low:'2',high:'5',confidence:'low'},history:[]},work_units:{value:'4.814348',status:'complete'},budget_comparison:{forecast_status:'within',limit_status:'below',forecast_basis:'original'}};
-assert.deepEqual(budgetCell(unit).children.map(n=>n.text),['Прогноз 3–6','Лимит 8','Факт 4,81']);
-assert.deepEqual(budgetCell({}).children.map(n=>n.text),['Прогноз —','Лимит —','Факт —']);
-assert.deepEqual(budgetCell({budget:{forecast:{low:'0',high:'0'},limit:'0'},work_units:{value:'0',status:'complete'}}).children.map(n=>n.text),['Прогноз 0–0','Лимит 0','Факт 0,00']);
+assert.deepEqual(budgetCell(unit).children.map(n=>n.text),['План 3–6','Факт 4,81']);
+assert.deepEqual(budgetCell({}).children.map(n=>n.text),['План —','Прогноз перед работой не записан','Факт —']);
+assert.deepEqual(budgetCell({budget:{forecast:{low:'0',high:'0'},limit:'0'},work_units:{value:'0',status:'complete'}}).children.map(n=>n.text),['План 0–0','Факт 0,00']);
 assert.equal(formatBudget('0.001'),'0,001');
 assert.equal(formatBudget(null),'—');
 const complete=budgetDescription(unit);
@@ -271,9 +322,9 @@ assert(complete.includes('Исходный прогноз: 2–5 WU · увер�
 assert(complete.includes('Уверенность прогноза: средняя'));
 const partial={...unit,work_units:{value:null,status:'partial',known_value:'4.814348'},budget_comparison:{forecast_status:'above',limit_status:'exceeded',forecast_basis:'original'}};
 assert(!budgetDescription(partial).some(line=>line.includes('превышен')||line.includes('относительно')));
-assert.equal(budgetCell(partial).children[2].text,'Факт —');
-assert.equal(budgetCell(partial).children[2].children[0].text,'Частично · известно 4,81');
-assert(!texts(budgetDetails(unit)).includes('История изменений'));
+assert.equal(budgetCell(partial).children[1].text,'Факт —');
+assert.equal(budgetCell(partial).children[1].children[0].text,'Частично · известно 4,81');
+assert(!texts(budgetDetails(unit)).includes('История изменений'));assert(!texts(budgetDetails(unit)).some(line=>/лимит/i.test(line)));assert(budgetDescription({budget:{forecast_unknown_reason:'No comparable history'}}).includes('Почему нет плана: No comparable history'));
 const hostile='<img src=x onerror=alert(1)>';
 const revised={...unit,budget:{...unit.budget,history:[{at:'2026-10-21',event_id:'revision-1',forecast:{low:'3',high:'6',confidence:'medium'},limit:'8',reason:hostile}]}};
 const detail=budgetDetails(revised);

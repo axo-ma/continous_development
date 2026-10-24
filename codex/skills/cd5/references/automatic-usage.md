@@ -1,13 +1,13 @@
 # Automatic factual usage
 
-Use automatic usage for ordinary CU accounting. No forecast, model call, reporting agent, background wakeup or per-turn task record is required. The owner still chooses meaningful CU boundaries; code cannot infer the user's intended work granularity from a transcript.
+Use automatic usage for ordinary CU accounting. No model call, reporting agent, background wakeup or per-turn task record is required. The owner still chooses meaningful CU boundaries; code cannot infer the user's intended work granularity from a transcript. The normal begin command requires a prospective forecast range or an explicit short reason why a defensible forecast is unavailable; see [WU budgets](wu-budgets.md). It requires no WU limit.
 
 ## Owner actions
 
 At the beginning of a meaningful CU, reuse its existing title/goal:
 
 ```
-python <skill>/scripts/control_units.py --root <project> begin --cu <stable-id> --title "Existing work title" --caller-thread <actual-owner-thread>
+python <skill>/scripts/control_units.py --root <project> begin --cu <stable-id> --title "Existing work title" --caller-thread <actual-owner-thread> --forecast-low 3 --forecast-high 6
 ```
 
 At completion, reuse the existing short result:
@@ -22,8 +22,8 @@ The tool captures the actual owner turn automatically in `auto_anchor` on new, n
 
 ## Resolution and limits
 
-- `cu_auto_telemetry.py` uses `.cd5/config.json` → `control_units.telemetry.session_roots` when supplied; otherwise the host's `CODEX_HOME/sessions` or home `.codex/sessions`. A host without accessible native journals still shows CU metadata with unknown usage. `control_units.telemetry.enabled=false` disables this adapter only.
-- Attribution is at whole owner-turn granularity. The turn opening a CU and its closing turn are included; two different CUs claiming the same turn are ambiguous, not split by elapsed time. Prefer a CU boundary between user-facing work stages rather than repeatedly switching CUs inside one turn.
+- `cu_auto_telemetry.py` uses `.cd5/config.json` → `control_units.telemetry.session_roots` when supplied; otherwise both `sessions` and `archived_sessions` under the host's `CODEX_HOME` or home `.codex`. Archival relocation retains attribution only when the unique session identity and saved start/prefix hashes still match; duplicate identities remain unknown. A host without accessible native journals still shows CU metadata with unknown usage. `control_units.telemetry.enabled=false` disables this adapter only.
+- Attribution is at whole owner-turn granularity. The turn opening a CU and its closing turn are included; two different CUs claiming the same turn are ambiguous, not split by elapsed time. New non-historical opens and resumes (`status=open`) with an observed anchor reject a turn already marked by another CU, before writing an event; continue the existing CU or open/resume the next in a new user turn. Idempotent retries retain the original anchor. This guard does not reconstruct historical overlapping turns or promise measurement when native journals are unavailable.
 - A closing turn may still be writing counters. It stays provisional until a later report read sees completion. Logical completion and final usage availability are separate; do not wake a model solely to settle a counter.
 - Identity comes from verified `session_meta.id`, not a filename or `session_id`. Raw journal records are never rewritten. Saved anchor positions/hashes must still match. Missing baselines, counter resets, truncated sources, contradictory values and unsplit model changes remain incomplete/unknown.
 - A fresh native session can prove its initial baseline from the first cumulative snapshot equalling that snapshot's last-request usage, under the adapter's cumulative/last-request counter contract and an intact source prefix. Record that derived-baseline witness; a first nonzero snapshot alone never proves zero.

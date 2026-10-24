@@ -30,7 +30,8 @@ class ControlUnitTests(unittest.TestCase):
 
     def test_begin_finish_cli_reuse_short_text_and_are_idempotent(self):
         with patch('cu_auto_telemetry.capture_anchor', return_value=None), patch('builtins.print'):
-            begin=['--root',str(self.root),'begin','--cu','simple','--title','Existing brief','--caller-thread','owner']
+            begin=['--root',str(self.root),'begin','--cu','simple','--title','Existing brief','--caller-thread','owner',
+                   '--forecast-unknown-reason','Synthetic task has no calibrated estimate']
             finish=['--root',str(self.root),'finish','--cu','simple','--result','Existing outcome','--caller-thread','owner']
             self.assertEqual(cu.main(begin),0);self.assertEqual(cu.main(begin),0)
             self.assertEqual(cu.main(finish),0);self.assertEqual(cu.main(finish),0)
@@ -38,6 +39,65 @@ class ControlUnitTests(unittest.TestCase):
         self.assertEqual(len(events),2)
         self.assertEqual(events[0]['payload']['goal'],'Existing brief')
         self.assertEqual(events[1]['payload']['result'],'Existing outcome')
+
+    def test_new_cu_cannot_silently_share_an_already_claimed_owner_turn(self):
+        anchor={'thread_id':'owner','turn_id':'one','recorded_at':'2026-10-21T10:00:00+00:00'}
+        with patch('cu_auto_telemetry.capture_anchor', return_value=anchor) as capture:
+            first=self.open('first')
+            self.assertEqual(first,self.open('first'))
+
+            with self.assertRaisesRegex(ValueError,'new user turn'):
+                self.open('second')
+            self.assertEqual(len(cu._events(self.root)),1)
+            self.record('status','first',status='completed',result='Synthetic result')
+            with self.assertRaisesRegex(ValueError,'already belongs to CU first'):
+                self.open('second')
+            capture.return_value={**anchor,'turn_id':'two'}
+            self.open('second')
+            self.assertEqual(len(cu._events(self.root)),3)
+            # An opening retry keeps its original anchor after the turn changes.
+            self.assertEqual(first,self.open('first'))
+
+    def test_closing_mark_also_reserves_current_turn_for_its_original_cu(self):
+        anchor={'thread_id':'owner','turn_id':'one','recorded_at':'2026-10-21T10:00:00+00:00'}
+        with patch('cu_auto_telemetry.capture_anchor', return_value=anchor) as capture:
+            self.open('first')
+            capture.return_value={**anchor,'turn_id':'two'}
+            self.record('status','first',status='completed',result='Synthetic result')
+            with self.assertRaisesRegex(ValueError,'new user turn'):
+                self.open('second')
+        self.assertEqual(len(cu._events(self.root)),2)
+
+    def test_paused_resume_cannot_claim_another_cus_marked_turn(self):
+        anchor={'thread_id':'owner','turn_id':'one','recorded_at':'2026-10-21T10:00:00+00:00'}
+        with patch('cu_auto_telemetry.capture_anchor', return_value=anchor) as capture:
+            self.open('first')
+            self.record('status','first',event_id='pause-first',status='paused')
+            capture.return_value={**anchor,'turn_id':'two'}
+            self.open('second')
+            self.record('status','second',event_id='pause-second',status='paused')
+            count=len(cu._events(self.root))
+            with self.assertRaisesRegex(ValueError,'already belongs to CU second'):
+                self.record('status','first',event_id='resume-first',status='open')
+            self.assertEqual(len(cu._events(self.root)),count)
+            capture.return_value={**anchor,'turn_id':'three'}
+            resumed=self.record('status','first',event_id='resume-first',status='open')
+            capture.return_value={**anchor,'turn_id':'two'}
+            self.assertEqual(resumed,self.record('status','first',event_id='resume-first',status='open'))
+
+    def test_record_requires_prospective_plan_but_preserves_historical_import(self):
+        data={'action':'open','event_id':'bare','cu_id':'bare','title':'Synthetic task','goal':'Synthetic result'}
+        with patch('cu_auto_telemetry.capture_anchor', return_value=None):
+            with self.assertRaisesRegex(ValueError,'forecast_unknown_reason'):
+                cu.record(self.root,data,'owner')
+            self.assertEqual(cu._events(self.root),[])
+            historical=cu.record(self.root,{**data,'historical':True},'owner')
+            self.assertEqual(historical,cu.record(self.root,{**data,'historical':True},'owner'))
+            self.assertNotIn('forecast_unknown_reason',historical['payload'])
+            planned=cu.record(self.root,{**data,'event_id':'planned','cu_id':'planned',
+                'forecast':{'low':'1','high':'2'}},'owner')
+            self.assertEqual(planned['payload']['budget']['forecast']['low'],'1')
+            self.assertNotIn('limit',planned['payload']['budget'])
 
     def setUp(self):
         self.root=Path(tempfile.mkdtemp(prefix='.cu-test-',dir=ROOT))
@@ -54,6 +114,8 @@ class ControlUnitTests(unittest.TestCase):
                                    'action':action,**fields},'owner')
 
     def open(self,unit='cu-a',**fields):
+        if not fields.get('historical') and not fields.get('forecast'):
+            fields.setdefault('forecast_unknown_reason','Synthetic fixture has no calibrated forecast')
         return self.record('open',unit,**{'title':unit,'goal':'Получить проверяемый результат',**fields})
 
     def person(self,thread='owner',role='hq',parent=None):
@@ -119,7 +181,8 @@ class ControlUnitTests(unittest.TestCase):
         base=other/'coordination/cd5';base.mkdir(parents=True)
         (base/'CHECKPOINT.json').write_text(json.dumps(self.cp))
         for f in ['EVIDENCE.jsonl','KNOWLEDGE.jsonl','ATTENTION.jsonl']:(base/f).write_text('')
-        cu.record(other,{'action':'open','event_id':'open','cu_id':'cu-a','title':'t','goal':'g'},'owner')
+        cu.record(other,{'action':'open','event_id':'open','cu_id':'cu-a','title':'t','goal':'g',
+                         'forecast_unknown_reason':'Synthetic fixture has no calibrated forecast'},'owner')
         for thread,role,parent in [('owner','hq',None),('child','helper','owner')]:
             cu.record(other,{'action':'participant','event_id':thread,'cu_id':'cu-a','participant':{'thread_id':thread,'role':role,'parent_thread_id':parent}},'owner')
         pm.append(other,'evidence',{'id':'scope-proof','kind':'artifact','schema_version':1,'provenance':{},'payload':{}},'hq')

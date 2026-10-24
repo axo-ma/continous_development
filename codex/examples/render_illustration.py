@@ -13,7 +13,7 @@ def render(png=False):
     output=CODEX/'docs/images';output.mkdir(parents=True,exist_ok=True)
     svg=[f'<svg xmlns="http://www.w3.org/2000/svg" width="{WIDTH}" height="{HEIGHT}" viewBox="0 0 {WIDTH} {HEIGHT}" role="img" aria-labelledby="title desc">',
          '<title id="title">Пример отчёта о прогрессе CD5</title>',
-         '<desc id="desc">Иллюстрация на вымышленных данных: четыре CU, раскрытая команда и прогноз, лимит, факт WU. Не скриншот пользовательского проекта.</desc>']
+         '<desc id="desc">Иллюстрация на вымышленных данных: четыре CU, раскрытая команда и KNOWLEDGE, ATTENTION и план–факт WU. Не скриншот пользовательского проекта.</desc>']
     image=draw=None
     if png:
         from PIL import Image,ImageDraw,ImageFont
@@ -38,21 +38,23 @@ def render(png=False):
         if draw:draw.text((x,y-size),str(value),font=font(size),fill=color)
     rect(0,0,WIDTH,HEIGHT,BG)
     text(50,70,'Прогресс проекта',38)
-    text(50,111,'Иллюстрация интерфейса · вымышленные данные · 21.10.2026',23,MUTED)
+    text(50,111,'Иллюстрация интерфейса · вымышленные данные · 23.10.2026',23,MUTED)
     text(50,148,'Время — измеренные ходы штаба, включая ожидания',22,MUTED)
     rect(50,179,180,46,SURFACE);text(65,211,'← Новее',23,MUTED)
     text(258,211,'Записи 1–4 из 4',23)
     rect(520,179,190,46,SURFACE);text(535,211,'Раньше →',23,MUTED)
+    for left,label,width in [(770,'План проекта',240),(1030,'KNOWLEDGE · Знания',360),(1410,'ATTENTION · Внимание',340)]:
+        rect(left,179,width,46,SURFACE);text(left+12,211,label,22,LINK)
     x=[65,190,430,850,1260,1395,1570]
     rect(50,250,1700,52,SURFACE)
     for pos,label in zip(x,['№','Запуск МСК','Control Unit','Результат','Время','Команда','WU']):text(pos,285,label,23,MUTED)
-    def task(y,identity,date,title,result,forecast,actual,limit='—',expanded=False):
+    def task(y,identity,date,title,result,forecast,actual,expanded=False):
         rect(50,y,1700,110,SURFACE);rect(1540,y,210,110,SOFT)
         for pos,value in zip(x[:6],[identity,date,title,result,'2 мин','↓ Команда' if expanded else '› Команда']):
             text(pos,y+47,value,22,LINK if pos in (430,850,1395) else INK)
-        text(1570,y+28,'Прогноз '+forecast,21);text(1570,y+59,'Лимит '+limit,21,MUTED);text(1570,y+92,'Факт '+actual,23)
+        text(1570,y+40,'План '+forecast,21);text(1570,y+82,'Факт '+actual,23)
         line(y+110)
-    task(302,'CU-012','21.10 · 14:00','Подготовить отчёт','Отчёт готов','3–6','4,81','8',True)
+    task(302,'CU-012','21.10 · 14:00','Подготовить отчёт','Отчёт готов','3–6','4,81',True)
     rect(50,412,1700,250,SOFT)
     text(82,453,'Команда · CU-012',25)
     tx=[82,310,500,720,850,1010,1230,1450,1620]

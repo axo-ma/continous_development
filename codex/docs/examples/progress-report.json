@@ -330,5 +330,56 @@
   "scope": {
     "label": "Демонстрационные данные",
     "usage_label": "Факт по всем четырём примерам"
+  },
+  "outline": {
+    "status": "available",
+    "markdown": "# Пример проекта\n\nЭто **вымышленный** пример.\n\n- Подготовить данные\n- Проверить результат"
+  },
+  "checkpoint": {
+    "status": "available",
+    "state": {
+      "phase": "Проверка примера",
+      "owner": "Штаб",
+      "next_action": "Обсудить результат",
+      "user_stop": false
+    }
+  },
+  "knowledge": {
+    "status": "available",
+    "entries": [
+      {
+        "id": "K-DEMO-1",
+        "kind": "observation",
+        "title": "Что показала проверка",
+        "text": "На вымышленных данных отчёт открывает сохранённые записи.",
+        "limitations": "Этот пример не подтверждает результаты реального проекта.",
+        "sources": [
+          {
+            "label": "Синтетическая фикстура документации"
+          }
+        ]
+      }
+    ]
+  },
+  "attention": {
+    "status": "available",
+    "open": [
+      {
+        "id": "A-DEMO-1",
+        "title": "Выбор следующего шага",
+        "question": "Какой из двух вариантов изучить первым?",
+        "status": "open",
+        "requires_user": true,
+        "description": "Вымышленный вопрос для демонстрации формы."
+      }
+    ],
+    "history": [
+      {
+        "title": "Пример закрытого вопроса",
+        "question": "Как назвать отчёт?",
+        "decision": "Отчёт о прогрессе",
+        "status": "closed"
+      }
+    ]
   }
 }

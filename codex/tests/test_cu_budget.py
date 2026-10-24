@@ -32,7 +32,10 @@ class BudgetTests(unittest.TestCase):
 
     def record(self,action='open',**values):
         data={'action':action,'cu_id':'cu','event_id':values.pop('event_id',action),**values}
-        if action=='open':data.update(title='Existing work',goal='Existing expected result')
+        if action=='open':
+            data.update(title='Existing work',goal='Existing expected result')
+            if not values.get('historical') and not values.get('forecast'):
+                data.setdefault('forecast_unknown_reason','Synthetic fixture has no calibrated forecast')
         return cu.record(self.root,data,'owner')
 
     def unit(self):return cu.report_data(self.root,auto_telemetry=False)['units'][0]
@@ -61,6 +64,22 @@ class BudgetTests(unittest.TestCase):
         self.record('budget',forecast={'low':'2','high':'4'},reason='New information')
         self.assertIsNone(self.unit()['budget']['original_forecast'])
         self.assertEqual(self.unit()['budget']['forecast']['confidence'],'low')
+
+    def test_begin_requires_plan_or_explicit_unknown_without_a_limit(self):
+        import contextlib
+        import io
+        args=['--root',str(self.root),'begin','--cu','cu','--title','Synthetic task','--caller-thread','owner']
+        with contextlib.redirect_stderr(io.StringIO()) as errors, self.assertRaises(SystemExit):
+            cu.main(args)
+        self.assertIn('--forecast-unknown-reason', errors.getvalue())
+        self.assertEqual(cu._events(self.root), [])
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(cu.main(args+['--forecast-unknown-reason','No comparable completed work']),0)
+        value=self.unit()['budget']
+        self.assertEqual(value['forecast_unknown_reason'],'No comparable completed work')
+        self.assertIsNone(value['forecast']);self.assertIsNone(value['limit'])
+        with self.assertRaises(ValueError):
+            self.record(event_id='conflict',forecast={'low':1,'high':2},forecast_unknown_reason='Conflict')
 
     def test_limit_does_not_create_forecast_and_zero_is_not_missing(self):
         self.record(limit=0)

@@ -4,6 +4,7 @@ import datetime
 import json
 from pathlib import Path
 import shutil
+import uuid
 
 
 def install(source, destination, names=('cd5', 'mac')):
@@ -11,7 +12,7 @@ def install(source, destination, names=('cd5', 'mac')):
     if source == destination or source.is_relative_to(destination) or destination.is_relative_to(source):
         raise ValueError('installation source and destination must be separate')
     destination.mkdir(parents=True, exist_ok=True)
-    backup = destination.parent/'skill-backups'/datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%S%fZ')
+    backup = destination.parent/'skill-backups'/(datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%S%fZ') + '-' + uuid.uuid4().hex)
     backup.mkdir(parents=True)
     plans = []
     prepared = []

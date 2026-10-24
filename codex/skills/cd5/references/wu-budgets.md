@@ -8,13 +8,13 @@ These are separate values for one whole CU, including HQ, executors, helpers and
 
 ## Minimal owner workflow
 
-Reuse the normal begin mark and add planning fields when useful:
+Reuse the normal begin mark with a rough prospective forecast (synthetic example):
 
 ```
-python <skill>/scripts/control_units.py --root <project> begin --cu <id> --title "Existing task" --caller-thread <owner> --forecast-low 3 --forecast-high 6 --confidence medium --limit-wu 8
+python <skill>/scripts/control_units.py --root <project> begin --cu <id> --title "Existing task" --caller-thread <owner> --forecast-low 3 --forecast-high 6 --confidence medium
 ```
 
-Each field is optional: the owner can set a forecast without a limit or a limit without a forecast. Both ends of a forecast range must be supplied together. Zero is a measured/planned zero; absence is not zero. Forecast/limit values are exact nonnegative decimal strings on the currently configured WU tariff date.
+Normal `begin` requires both ends of the range or `--forecast-unknown-reason "No comparable completed work"`. New non-historical `record` opens enforce the same contract with `forecast` or `forecast_unknown_reason`. The short reason is saved as `budget.forecast_unknown_reason`; it leaves the forecast unknown and does not fabricate an estimate. Bare new opens fail before writing with an actionable message. Historical imports, existing event replay and idempotent retries remain compatible; existing missing forecasts are never backfilled. No WU limit is required; any independently authorized limit remains optional. Zero is a measured/planned zero; absence is not zero. Forecast/limit values are exact nonnegative decimal strings on the currently configured WU tariff date.
 
 Pass CU ID, forecast range/confidence and any separately authorized limit in the existing executor brief. The executor uses the forecast as orientation, avoids unnecessary repeats, and reports material scope/cost changes with the cause and remaining work. Do not lower quality merely to fit the forecast. If the limit appears insufficient, return to HQ before starting further work expected to exceed it; HQ chooses to narrow, continue with a revised allocation, or stop. Do not send repeated bookkeeping messages for each tool call. A whole-team CU allocation must not be copied as a full personal budget to each agent.
 

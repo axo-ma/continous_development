@@ -9,6 +9,10 @@ import os
 from pathlib import Path
 import tempfile
 import uuid
+import sys
+
+if str(Path(__file__).resolve().parent) not in sys.path:
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 
 def render_report(data: dict, *, fragment: bool = False, rate_path: Path | None = None) -> str:
@@ -92,6 +96,8 @@ def main(argv=None) -> int:
     else:
         from control_units import report_data
         data = report_data(args.root, all_units=True, since=args.since, until=args.until)
+        from report_memory import project_snapshots
+        data.update(project_snapshots(args.root))
     def configure_pages(dataset):
         dataset = {**dataset, 'page_size': args.limit}
         if dataset['units'] and all(unit.get('started_at') for unit in dataset['units']):

@@ -228,27 +228,49 @@ def query(root,kind,terms,limit=20,include_closed=False):
 
 _MILESTONE_RE=re.compile(r'^\s*-\s*\[([ xX])\]\s+`([A-Za-z0-9][A-Za-z0-9_.:-]{0,159})`\s*[—-]\s*(.+?)\s*$')
 def _outline_milestones(text):
- """Read explicitly listed milestones; prose and legacy plans are never guessed into progress."""
- milestones=[]; in_section=False; current=None
+ """Read explicit list or heading milestones in a bounded plan section."""
+ milestones=[]; section_level=None; current=None; field=None; fenced=False
+ aliases={'planned':'planned','not_started':'planned','впереди':'planned','запланирована':'planned',
+          'in_progress':'in_progress','в работе':'in_progress','начата':'in_progress',
+          'blocked':'blocked','заблокирована':'blocked',
+          'complete':'complete','completed':'complete','завершена':'complete'}
  for line in text.splitlines():
-  heading=re.match(r'^#{1,6}\s+(.+?)\s*#*\s*$',line)
+  if re.match(r'^\s*(```|~~~)',line): fenced=not fenced; continue
+  if fenced: continue
+  heading=re.match(r'^(#{1,6})\s+(.+?)\s*#*\s*$',line)
   if heading:
-   if heading.group(1).casefold()=='milestones': in_section=True
-   elif in_section: break
+   level=len(heading.group(1)); title=heading.group(2)
+   if title.casefold() in {'milestones','project milestones','вехи','вехи проекта'}:
+    section_level=level; current=None; continue
+   if section_level is None: continue
+   if level<=section_level: section_level=None; current=None; continue
+   match=re.match(r'`?(MS-[A-Za-z0-9_-]+)`?[.\s:—-]+(.+)$',title,re.I)
+   if match:
+    current={'id':match.group(1),'title':match.group(2),'status':'unknown','criteria':[],'latest_change':None}
+    milestones.append(current); field=None
+   else: current=None
    continue
-  if not in_section: continue
+  if section_level is None: continue
   match=_MILESTONE_RE.match(line)
   if match:
    current={'id':match.group(2),'title':match.group(3),'status':'complete' if match.group(1).strip().casefold()=='x' else 'planned','criteria':[],'latest_change':None}
-   milestones.append(current); continue
-  if current is not None:
-   criteria=re.match(r'^\s+-\s+criteria:\s*(.*)$',line,re.I)
-   changed=re.match(r'^\s+-\s+latest change:\s*(.*)$',line,re.I)
-   status=re.match(r'^\s+-\s+status:\s*(planned|in_progress|blocked|complete)\s*$',line,re.I)
-   if criteria: current['criteria'].append(criteria.group(1).strip())
-   elif changed: current['latest_change']=changed.group(1).strip()
-   elif status: current['status']=status.group(1).casefold()
+   milestones.append(current); field=None; continue
+  if current is None: continue
+  label=re.match(r'^\s*(?:-\s+)?(?:\*\*)?([^:*]+):(?:\*\*)?\s*(.*)$',line)
+  if label and ('**' in line or label.group(1).strip().casefold() in {'status','criteria','completion criteria','latest change'}):
+   key=label.group(1).strip().casefold(); value=label.group(2).strip(); field=None
+   if key in {'status','статус'}:
+    value=value.casefold()
+    current['status']=next((status for name,status in aliases.items()
+                            if re.match(re.escape(name)+r'(?:$|[.\s;,:(])',value)), 'unknown')
+   elif key in {'criteria','completion criteria','критерий завершения','критерии завершения'}:
+    field='criteria'
+    if value: current['criteria'].append(value)
+   elif key in {'latest change','последнее изменение'}: current['latest_change']=value
+  elif field=='criteria' and line.strip():
+   current['criteria'].append(re.sub(r'^\s*-\s+', '', line).strip())
  return milestones
+
 
 def progress_view(root,milestone_id=None,limit=10):
  """Return bounded progress from explicit OUTLINE milestones and accepted KNOWLEDGE task results."""

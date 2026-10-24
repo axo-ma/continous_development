@@ -30,7 +30,8 @@ def _roots(root, settings):
     supplied = settings.get('session_roots')
     if supplied is not None and (not isinstance(supplied, list) or any(not isinstance(p, str) or not p for p in supplied)):
         raise ValueError('telemetry.session_roots must be a list of paths')
-    paths = supplied if supplied is not None else [str(Path(os.environ.get('CODEX_HOME', Path.home() / '.codex')) / 'sessions')]
+    home = Path(os.environ.get('CODEX_HOME', Path.home() / '.codex'))
+    paths = supplied if supplied is not None else [str(home / 'sessions'), str(home / 'archived_sessions')]
     return [(Path(root) / p).resolve() if not Path(p).is_absolute() else Path(p).resolve() for p in paths]
 
 
@@ -182,7 +183,10 @@ def _anchor(row, sessions):
     if not isinstance(anchor, dict) or anchor.get('thread_id') != row.get('provenance', {}).get('caller_thread_id'):
         return None
     session = sessions.get(anchor['thread_id'])
-    if not session or session['path'] != str(Path(anchor.get('source_file', '')).resolve()):
+    # Native archival moves the journal without changing its identity or bytes.
+    # The unique indexed session plus the saved prefix/start witnesses proves
+    # continuity; its old absolute filename is provenance, not an identity key.
+    if not session:
         return None
     for index, turn in enumerate(session['turns']):
         if (turn['id'] == anchor.get('turn_id') and turn['start']['_position'] == anchor.get('start_position')
