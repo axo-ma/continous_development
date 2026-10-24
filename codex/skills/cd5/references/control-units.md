@@ -73,3 +73,7 @@ CU events are `kind=artifact`, `payload.type=control_unit_event` envelopes in ex
 Defaults: at most 300 hot CU events / 256 KiB, retired in batches to 75% of the caps. `.cd5/config.json` may override `control_units.keep_active_events` / `max_active_bytes`. Other evidence is not automatically moved by a CU write. A full evidence compaction is explicit, lossless and preserves references; do not run it on an existing project as an installation side effect.
 
 `cu_archive.py --root <project> budget` checks all five active files against configurable byte budgets (`memory_limits_bytes`). `compact` defaults to dry-run; `--apply` executes a verified archive move. OUTLINE/CHECKPOINT/current knowledge/attention must not be blindly truncated: their size alerts require the owner to summarize/archive with semantic review. This version enforces CU hot-event bounds automatically and diagnoses other files; it does not enforce hard bounds on arbitrary writes by other tools. Cold history on disk necessarily grows if all-time history is retained.
+
+## Readable report layout
+
+The overview fits the containing browser panel. Use short row ordinals and compact dates; retain complete CU IDs in readable details. Keep main plan/actual cells numeric and short, with full unknown reasons and participant measurements available on click. Long task/result text opens in details. Narrow panels use stacked rows; expanded teams and details must also fit without horizontal page scrolling. Keep operational checkpoint details collapsed initially so they do not push the overview off screen.

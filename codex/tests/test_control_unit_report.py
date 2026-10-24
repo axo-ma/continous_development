@@ -268,7 +268,7 @@ for(const total of [0,1,10,11,41]){const all=[];const count=Math.max(1,Math.ceil
         functions = template.split('function formatWU', 1)[1].split('function renderMethod', 1)[0]
         script = '''
 const assert=require('node:assert/strict');
-function element(tag,text,cls){return {tag,text,cls,children:[],append(child){this.children.push(child);}};}
+function element(tag,text,cls){return {tag,text,cls,children:[],attributes:{},listeners:{},setAttribute(k,v){this.attributes[k]=v;},addEventListener(k,v){this.listeners[k]=v;},append(...children){this.children.push(...children);}};}
 function formatWU''' + functions + '''
 assert.equal(formatWU('4.814348'),'4,81');
 assert.equal(formatWU('0'),'0,00');
@@ -295,7 +295,7 @@ assert.equal(exact.children.length,0);
         template = Path(report.__file__).with_suffix('.html').read_text(encoding='utf-8')
         heading = template.split('<table aria-label="Control Units">', 1)[1].split('</thead>', 1)[0]
         self.assertEqual(heading.count('<th>') + heading.count('<th '), 7)
-        self.assertIn('>WU</th>', heading)
+        self.assertIn('План / факт<br>WU</th>', heading)
         self.assertNotIn('Вход из кэша', heading)
         self.assertIn("costCell(data.work_units?.total,'td','Факт ')", template)
         self.assertNotIn('const sums=', template)
@@ -306,14 +306,14 @@ assert.equal(exact.children.length,0);
         functions = 'function formatWU' + template.split('function formatWU', 1)[1].split('function renderMethod', 1)[0]
         script = '''
 const assert=require('node:assert/strict');
-function element(tag,text,cls){return {tag,text,cls,children:[],append(child){this.children.push(child);}};}
+function element(tag,text,cls){return {tag,text,cls,children:[],attributes:{},listeners:{},setAttribute(k,v){this.attributes[k]=v;},addEventListener(k,v){this.listeners[k]=v;},append(...children){this.children.push(...children);}};}
 function time(value){return value||'—';}
 function texts(node){return [node.text??'',...node.children.flatMap(texts)];}
 ''' + functions + '''
 const unit={budget:{forecast:{low:'3',high:'6',confidence:'medium'},limit:'8',original_forecast:{low:'2',high:'5',confidence:'low'},history:[]},work_units:{value:'4.814348',status:'complete'},budget_comparison:{forecast_status:'within',limit_status:'below',forecast_basis:'original'}};
-assert.deepEqual(budgetCell(unit).children.map(n=>n.text),['План 3–6','Факт 4,81']);
-assert.deepEqual(budgetCell({}).children.map(n=>n.text),['План —','Прогноз перед работой не записан','Факт —']);
-assert.deepEqual(budgetCell({budget:{forecast:{low:'0',high:'0'},limit:'0'},work_units:{value:'0',status:'complete'}}).children.map(n=>n.text),['План 0–0','Факт 0,00']);
+assert.deepEqual(budgetCell(unit).children[0].children.map(n=>n.text),['План 3–6','Факт 4,81','Подробнее']);
+assert.deepEqual(budgetCell({}).children[0].children.map(n=>n.text),['План —','Факт —','Нет измерений']);const longReason='Long reason '.repeat(200);assert(!texts(budgetCell({budget:{forecast_unknown_reason:longReason}})).includes(longReason));assert(budgetDescription({budget:{forecast_unknown_reason:longReason}}).some(text=>text.includes(longReason)));
+assert.deepEqual(budgetCell({budget:{forecast:{low:'0',high:'0'},limit:'0'},work_units:{value:'0',status:'complete'}}).children[0].children.map(n=>n.text),['План 0–0','Факт 0,00','Подробнее']);
 assert.equal(formatBudget('0.001'),'0,001');
 assert.equal(formatBudget(null),'—');
 const complete=budgetDescription(unit);
@@ -322,8 +322,8 @@ assert(complete.includes('Исходный прогноз: 2–5 WU · увер�
 assert(complete.includes('Уверенность прогноза: средняя'));
 const partial={...unit,work_units:{value:null,status:'partial',known_value:'4.814348'},budget_comparison:{forecast_status:'above',limit_status:'exceeded',forecast_basis:'original'}};
 assert(!budgetDescription(partial).some(line=>line.includes('превышен')||line.includes('относительно')));
-assert.equal(budgetCell(partial).children[1].text,'Факт —');
-assert.equal(budgetCell(partial).children[1].children[0].text,'Частично · известно 4,81');
+assert.equal(budgetCell(partial).children[0].children[1].text,'Факт ≥ 4,81');
+assert.equal(budgetCell(partial).children[0].children[2].text,'Измеренная часть');let opened=false;function openBudget(value,trigger){assert.equal(value,unit);opened=true;}budgetCell(unit).children[0].listeners.click();assert(opened);
 assert(!texts(budgetDetails(unit)).includes('История изменений'));assert(!texts(budgetDetails(unit)).some(line=>/лимит/i.test(line)));assert(budgetDescription({budget:{forecast_unknown_reason:'No comparable history'}}).includes('Почему нет плана: No comparable history'));
 const hostile='<img src=x onerror=alert(1)>';
 const revised={...unit,budget:{...unit.budget,history:[{at:'2026-10-21',event_id:'revision-1',forecast:{low:'3',high:'6',confidence:'medium'},limit:'8',reason:hostile}]}};
