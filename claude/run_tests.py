@@ -38,6 +38,8 @@ def main(argv=None):
         (fixture / 'tools/__init__.py').touch()
         shutil.copytree(HERE / 'tests', fixture / 'tests', ignore=shutil.ignore_patterns('__pycache__', '*.pyc'))
         shutil.copy2(HERE / 'install.py', fixture / 'install.py')
+        shutil.copytree(HERE / 'evals', fixture / 'evals', ignore=shutil.ignore_patterns('__pycache__', '*.pyc'))
+        shutil.copy2(HERE / 'CLAUDE.fragment.md', fixture / 'CLAUDE.fragment.md')
         temporary = fixture / 'tmp'
         temporary.mkdir()
         environment = os.environ.copy()
