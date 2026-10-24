@@ -99,6 +99,25 @@ class ControlUnitTests(unittest.TestCase):
             self.assertEqual(planned['payload']['budget']['forecast']['low'],'1')
             self.assertNotIn('limit',planned['payload']['budget'])
 
+    def test_participant_cli_resolves_path_to_native_identity_and_explicit_role(self):
+        self.open('first')
+        args=['--root',str(self.root),'participant','--cu','first','--caller-thread','owner',
+              '--agent-path','/root/worker','--role','executor']
+        with patch('cu_auto_telemetry.resolve_agent_identity',return_value='native-worker') as resolve, patch('builtins.print'):
+            self.assertEqual(cu.main(args),0)
+            self.assertEqual(cu.main(args),0)
+        resolve.assert_called_with(self.root.resolve(),'/root/worker','owner')
+        person=cu._events(self.root)[-1]['payload']['participant']
+        self.assertEqual(person['thread_id'],'native-worker')
+        self.assertEqual(person['role'],'executor')
+        self.assertEqual(person['parent_thread_id'],'owner')
+        self.assertEqual(len(cu._events(self.root)),2)
+        with patch('cu_auto_telemetry.resolve_agent_identity',side_effect=ValueError('retry after native session header exists')):
+            with self.assertRaisesRegex(ValueError,'retry after'):
+                self.record('participant','first',event_id='not-ready',participant={
+                    'agent_path':'/root/new','role':'helper'})
+        self.assertEqual(len(cu._events(self.root)),2)
+
     def setUp(self):
         self.root=Path(tempfile.mkdtemp(prefix='.cu-test-',dir=ROOT))
         self.addCleanup(lambda: shutil.rmtree(self.root))

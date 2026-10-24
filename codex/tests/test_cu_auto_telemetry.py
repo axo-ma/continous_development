@@ -191,6 +191,58 @@ class AutoTelemetryTests(unittest.TestCase):
         child = next(p for p in auto.enrich_report(self.root, self.data(), events)['units'][0]['participants'] if p['participant_id'] == 'child')
         self.assertIn('child_reused_across_control_units', child['telemetry_diagnostics'])
 
+    def test_pending_parent_discovers_children_only_inside_observed_span(self):
+        hq = self.session(rows=[snapshot(100, 0), *turn('one', 5, complete=False), snapshot(200, 30)])
+        rows = [snapshot(0, 6), *turn('child-one', 8, 20)]
+        self.session('child', rows=rows, parent='hq', created=6)
+        self.session('future', rows=[snapshot(0, 31), *turn('future-one', 33, 20)], parent='hq', created=31)
+        unit = auto.enrich_report(self.root, self.data(), self.bounded(hq))['units'][0]
+        self.assertEqual({p['participant_id'] for p in unit['participants']}, {'hq','child'})
+        child = next(p for p in unit['participants'] if p['participant_id']=='child')
+        self.assertEqual(child['coverage'],'complete')
+        self.assertFalse(child['exclusive_scope'])
+        self.assertIn('parent_child_scope_not_verified',unit['telemetry_diagnostics'])
+
+    def test_reused_child_followup_in_active_parent_turn_is_selected(self):
+        hq = self.session(rows=[snapshot(100, 0), *turn('one', 5), *turn('two', 20, 200, complete=False), snapshot(220, 40)])
+        rows=[snapshot(0, 6), *turn('child-one', 7, 20)]
+        rows[-1]['timestamp']=stamp(8)
+        self.session('child', rows=[*rows, *turn('followup', 25, 40)], parent='hq', created=6)
+        child=next(p for p in auto.enrich_report(self.root,self.data(),self.bounded(hq,'one','two'))['units'][0]['participants'] if p['participant_id']=='child')
+        self.assertEqual(len(child['telemetry_provenance']['turns']),2)
+        self.assertEqual(child['usage']['output'],4)
+
+    def test_child_beyond_active_parent_observation_stays_unmeasured(self):
+        hq=self.session(rows=[snapshot(100,0),*turn('one',5,complete=False),snapshot(200,20)])
+        self.session('child',rows=[snapshot(0,6),*turn('child-one',18,20)],parent='hq',created=6)
+        child=next(p for p in auto.enrich_report(self.root,self.data(),self.bounded(hq))['units'][0]['participants'] if p['participant_id']=='child')
+        self.assertIn('child_turn_exceeds_parent_span',child['telemetry_diagnostics'])
+        self.assertTrue(all(v is None for v in child['usage'].values()))
+
+    def test_registered_alias_requires_unique_exact_native_path_and_parent(self):
+        events=self.child_fixture(registered=False)
+        path=self.root/'sessions/child.jsonl'
+        rows=[json.loads(line) for line in path.read_text().splitlines()]
+        rows[0]['payload']['agent_path']='/root/task'
+        rows[0]['payload']['source']['subagent']['thread_spawn']['agent_path']='/root/task'
+        self.write(path,rows)
+        self.assertEqual(auto.resolve_agent_identity(self.root,'/root/task','hq'),'child')
+        with self.assertRaisesRegex(ValueError,'cannot resolve'):
+            auto.resolve_agent_identity(self.root,'/root/task','wrong-parent')
+        events.append(self.cu_event(action='participant',participant={'thread_id':'symbolic','agent_path':'/root/task',
+            'parent_thread_id':'hq','role':'executor','name':'Registered worker'}))
+        unit=auto.enrich_report(self.root,self.data(),events)['units'][0]
+        child=next(p for p in unit['participants'] if p['participant_id']=='child')
+        self.assertEqual(child['role'],'executor')
+        self.assertEqual(child['registered_identity'],'symbolic')
+        self.assertNotIn('registered_participant_not_verified',unit['telemetry_diagnostics'])
+        duplicate=copy.deepcopy(rows);duplicate[0]['payload']['id']='duplicate'
+        self.write(self.root/'sessions/duplicate.jsonl',duplicate)
+        with self.assertRaisesRegex(ValueError,'cannot resolve'):
+            auto.resolve_agent_identity(self.root,'/root/task','hq')
+        unit=auto.enrich_report(self.root,self.data(),events)['units'][0]
+        self.assertIn('registered_participant_not_verified',unit['telemetry_diagnostics'])
+
     def test_unregistered_child_keeps_measured_counters_with_unknown_role(self):
         events = self.child_fixture(registered=False)
         child = next(p for p in auto.enrich_report(self.root, self.data(), events)['units'][0]['participants'] if p['participant_id'] == 'child')

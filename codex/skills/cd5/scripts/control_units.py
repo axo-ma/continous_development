@@ -192,7 +192,16 @@ def record(root, data, caller_thread_id):
         if data['status'] == 'completed' and not payload.get('result'):
             raise ValueError('completed CU requires a result; pause is not completion')
     elif action == 'participant':
-        payload['participant'] = _person(data.get('participant'))
+        person = data.get('participant')
+        if isinstance(person, dict) and not person.get('thread_id') and person.get('agent_path'):
+            try:
+                from .cu_auto_telemetry import resolve_agent_identity
+            except ImportError:
+                from cu_auto_telemetry import resolve_agent_identity
+            parent = person.get('parent_thread_id') or caller_thread_id
+            person = {**person, 'parent_thread_id': parent,
+                      'thread_id': resolve_agent_identity(root, person['agent_path'], parent)}
+        payload['participant'] = _person(person)
     elif action == 'budget':
         _text(data.get('reason'), 'budget revision reason', True, 4096)
         payload['budget'] = budget_patch()
@@ -390,11 +399,11 @@ def main(argv=None):
     begin = sub.add_parser('begin', help='Open one user-facing work unit; capture its current owner turn automatically')
     begin.add_argument('--cu', required=True); begin.add_argument('--title', required=True); begin.add_argument('--goal')
     begin.add_argument('--caller-thread', required=True); begin.add_argument('--source')
-    begin.add_argument('--forecast-unknown-reason', help='Why no defensible forecast is available before work')
     budget = sub.add_parser('budget', help='Revise forecast or an independently authorized whole-team WU limit')
     budget.add_argument('--cu', required=True); budget.add_argument('--caller-thread', required=True)
     budget.add_argument('--event-id', required=True); budget.add_argument('--reason', required=True)
     for command in (begin, budget):
+        command.add_argument('--forecast-unknown-reason', help='Why no defensible prospective forecast is currently available')
         command.add_argument('--forecast-low'); command.add_argument('--forecast-high')
         command.add_argument('--confidence', choices=['low', 'medium', 'high'])
         command.add_argument('--limit-wu'); command.add_argument('--clear-forecast', action='store_true')
@@ -402,6 +411,10 @@ def main(argv=None):
     finish = sub.add_parser('finish', help='Reuse a short existing result; capture the closing owner turn automatically')
     finish.add_argument('--cu', required=True); finish.add_argument('--result', required=True)
     finish.add_argument('--caller-thread', required=True); finish.add_argument('--source')
+    participant = sub.add_parser('participant', help='Register an explicit role using a canonical agent path or native thread UUID')
+    participant.add_argument('--cu', required=True); participant.add_argument('--caller-thread', required=True)
+    participant.add_argument('--agent-path'); participant.add_argument('--thread'); participant.add_argument('--parent')
+    participant.add_argument('--role', required=True, choices=sorted(ROLES)); participant.add_argument('--name')
     collect = sub.add_parser('collect'); collect.add_argument('--cu', required=True); collect.add_argument('--mapping', required=True)
     collect.add_argument('--event-id', required=True); collect.add_argument('--caller-thread', required=True); collect.add_argument('--exclusive-scope-evidence')
     read = sub.add_parser('summary'); read.add_argument('--limit', type=int, default=10); read.add_argument('--all', action='store_true', dest='all_units')
@@ -410,6 +423,8 @@ def main(argv=None):
     try:
         fields = {}
         if args.command in {'begin', 'budget'}:
+            if args.forecast_unknown_reason:
+                fields['forecast_unknown_reason'] = args.forecast_unknown_reason
             if args.clear_forecast:
                 if args.forecast_low is not None or args.forecast_high is not None or args.confidence is not None:
                     raise ValueError('clearing a forecast cannot also replace it')
@@ -435,6 +450,17 @@ def main(argv=None):
             saved = record(args.root, data, args.caller_thread)
             out = {'cu_id': args.cu, 'action': saved['payload']['action'],
                    'usage_anchor_captured': bool(saved['payload'].get('auto_anchor'))}
+        elif args.command == 'participant':
+            if not args.thread and not args.agent_path:
+                raise ValueError('participant requires --agent-path or --thread')
+            person = {'thread_id': args.thread, 'agent_path': args.agent_path,
+                      'parent_thread_id': args.parent or args.caller_thread, 'role': args.role,
+                      'name': args.name or args.role}
+            identity = args.thread or args.agent_path
+            event_id = 'participant-'+args.cu+'-'+hashlib.sha256(identity.encode()).hexdigest()[:24]
+            saved = record(args.root, {'action':'participant','cu_id':args.cu,'event_id':event_id,
+                                      'participant':person}, args.caller_thread)
+            out = {'cu_id':args.cu,'action':'participant','participant':saved['payload']['participant']}
         elif args.command == 'budget':
             saved = record(args.root, {'action':'budget', 'cu_id':args.cu, 'event_id':args.event_id,
                                        'reason':args.reason, **fields}, args.caller_thread)

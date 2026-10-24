@@ -53,6 +53,13 @@ def normalize_patch(data):
     if 'limit' in data:
         out['limit'] = None if data['limit'] is None else amount(data['limit'])
         out['limit_rate_date'] = _date(data.get('limit_rate_date', rate_date))
+    if 'forecast_unknown_reason' in data:
+        reason = data['forecast_unknown_reason']
+        if not isinstance(reason, str) or not reason.strip() or len(reason.encode('utf-8')) > 4096:
+            raise ValueError('forecast_unknown_reason must be nonempty short text')
+        if data.get('forecast') is not None:
+            raise ValueError('supply a forecast range or an unknown reason, not both')
+        out.update(forecast=None, forecast_unknown_reason=reason)
     if not out:
         raise ValueError('supply a forecast or a separate limit')
     reason = data.get('reason', '')
@@ -71,8 +78,11 @@ def apply_patch(current, patch, *, at, event_id, initial=False):
     out = deepcopy(current)
     if 'forecast' in patch:
         out['forecast'] = deepcopy(patch['forecast'])
+        out.pop('forecast_unknown_reason', None)
         if initial:
             out['original_forecast'] = deepcopy(patch['forecast'])
+    if 'forecast_unknown_reason' in patch:
+        out['forecast_unknown_reason'] = patch['forecast_unknown_reason']
     for key in ('limit', 'limit_rate_date'):
         if key in patch:
             out[key] = patch[key]

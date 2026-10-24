@@ -127,7 +127,7 @@ def _unit_cost(unit, rates):
     # A subtotal is safe only for explicitly independent counters, never an
     # invented zero or sum of potentially parent-inclusive counters.
     known = _sum(p['work_units']['known_value'] for p in people
-                 if p.get('exclusive_scope') is True and p['work_units']['status'] == 'complete')
+                 if p.get('exclusive_scope') is True and p['work_units']['status'] in {'complete', 'partial'})
     notes = ['incomplete_team_coverage']
     if not independent:
         notes.append('unknown_or_overlapping_accounting_scope')

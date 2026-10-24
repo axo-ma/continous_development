@@ -4,7 +4,7 @@ These are separate values for one whole CU, including HQ, executors, helpers and
 
 - **Forecast**: an expected WU range with low/medium/high confidence. It guides work; it is not a spending cap or a quality target. Include a rough assessment in normal planning, without a separate estimator agent or long explanation. If there is no defensible estimate, leave it unknown.
 - **Limit**: an optional, explicitly chosen maximum allocation, independent of the forecast. Do not silently turn the forecast's upper bound into a limit. It cannot override user permissions, project STOP, quotas or scientific budgets.
-- **Actual**: the factual WU derived by the existing usage collector and dated base-cost estimator. It can be incomplete until journals settle; do not compare unknown/partial amounts as though they were a complete actual.
+- **Actual**: the factual WU derived by the existing usage collector and dated base-cost estimator. It can be incomplete until journals settle. Verified observed counters in an open turn are displayed as an explicitly partial amount at the snapshot time; missing duration does not erase valid token measurements. Do not compare unknown/partial amounts as though they were a complete actual.
 
 ## Minimal owner workflow
 
@@ -30,8 +30,8 @@ The program records the initial forecast only if supplied at CU open. Later esti
 
 ## Report and interpretation
 
-The main WU cell shows **Прогноз / Лимит / Факт** together. Team details retain participant actuals; forecast/limit are not duplicated as per-participant budgets. Task/result details show confidence, original forecast and dated revisions. The footer is explicitly factual usage for the whole selection across pages, not a sum of unrelated forecasts or limits.
+The main WU cell shows **План / Факт**. Limits are not shown in the report, including CU details; existing limit records remain in canonical history. Missing forecasts show the recorded reason, or explicitly state that no prospective forecast was recorded. Team details retain participant actuals; forecast/limit are not duplicated as per-participant budgets. Task/result details show confidence, original forecast and dated revisions. The footer is explicitly factual usage for the whole selection across pages, not a sum of unrelated forecasts or limits.
 
-Only complete actuals with the same dated API base-cost basis are compared. A still-open CU can already exceed the original forecast, but cannot be declared to have finished below/within it. A completed CU is classified relative to its original range. Limits are labelled below/reached/exceeded as information; the implementation does not kill agents, cancel work, resume a project or install schedules. Journal collection is deferred to reads and cannot promise a real-time hard spending guard. Changes of tariff date or accounting basis leave comparison unknown instead of creating a misleading verdict. WU is not subscription capacity.
+Only complete actuals with the same dated API base-cost basis are compared. A still-open CU can already exceed the original forecast, but cannot be declared to have finished below/within it. A completed CU is classified relative to its original range. Limit comparisons stay in the underlying data; the implementation does not kill agents, cancel work, resume a project or install schedules. Journal collection is deferred to reads and cannot promise a real-time hard spending guard. Changes of tariff date or accounting basis leave comparison unknown instead of creating a misleading verdict. WU is not subscription capacity.
 
 This version records forecasts and comparisons; it does not train an estimator, invent historical estimates or automatically generate forecasts from insufficient examples.

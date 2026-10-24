@@ -8,11 +8,11 @@
       "title": "Подготовить отчёт",
       "goal": "Подготовить отчёт",
       "description": "Вымышленный пример для документации. Реальные журналы не используются.",
-      "result": "Отчёт готов",
+      "result": "Работа продолжается · синтетический пример",
       "result_detail": "Сохранённые подробности открываются без нового обращения к модели.",
-      "status": "completed",
+      "status": "open",
       "started_at": "2026-10-21T14:00:00+03:00",
-      "ended_at": "2026-10-21T14:02:00+03:00",
+      "ended_at": null,
       "elapsed_ms": 120000,
       "reported_ms": 120000,
       "participants": [
@@ -23,13 +23,20 @@
           "role": "hq",
           "model": "gpt-6.1-sol",
           "reasoning": "low",
-          "elapsed_ms": 120000,
-          "coverage": "complete",
+          "elapsed_ms": null,
+          "coverage": "partial",
           "exclusive_scope": true,
           "usage": {
             "cached_input": 2458368,
             "uncached_input": 16308,
             "output": 3233
+          },
+          "telemetry_diagnostics": [
+            "pending_turn",
+            "missing_measured_duration"
+          ],
+          "telemetry_provenance": {
+            "observed_through": "2026-10-21T14:01:00+03:00"
           }
         },
         {
@@ -54,7 +61,7 @@
         "uncached_input": 58861,
         "output": 7602
       },
-      "usage_status": "complete",
+      "usage_status": "partial",
       "budget": {
         "unit": "WU",
         "scope": "whole_team",

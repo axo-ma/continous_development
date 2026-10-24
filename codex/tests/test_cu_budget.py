@@ -65,6 +65,26 @@ class BudgetTests(unittest.TestCase):
         self.assertIsNone(self.unit()['budget']['original_forecast'])
         self.assertEqual(self.unit()['budget']['forecast']['confidence'],'low')
 
+    def test_current_unknown_reason_revision_is_visible_and_never_original(self):
+        import contextlib
+        import io
+        self.record(historical=True)
+        args=['--root',str(self.root),'budget','--cu','cu','--caller-thread','owner',
+              '--event-id','current-reason','--reason','Prospective review of remaining work',
+              '--forecast-unknown-reason','No comparable measured work for remaining scope']
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(cu.main(args),0)
+            self.assertEqual(cu.main(args),0)
+        value=self.unit()['budget']
+        self.assertEqual(value['forecast_unknown_reason'],'No comparable measured work for remaining scope')
+        self.assertIsNone(value['original_forecast'])
+        self.assertIsNone(value['forecast'])
+        self.assertEqual(len(value['history']),1)
+        self.record('budget',event_id='later-plan',forecast={'low':'1','high':'3'},reason='New prospective estimate')
+        value=self.unit()['budget']
+        self.assertIsNone(value['original_forecast'])
+        self.assertNotIn('forecast_unknown_reason',value)
+
     def test_begin_requires_plan_or_explicit_unknown_without_a_limit(self):
         import contextlib
         import io

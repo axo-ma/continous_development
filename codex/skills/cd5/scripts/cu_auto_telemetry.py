@@ -290,14 +290,21 @@ def _measure(session, indices, person, diagnostics=()):
     if len(models) != 1:
         notes.append('missing_or_mixed_models')
     complete = not any(note not in ('unregistered_discovered_child', 'missing_measured_duration') for note in notes)
+    # A running turn already contains measured request counters. Preserve their
+    # observed delta as partial coverage instead of hiding it until completion.
+    # Ambiguous attribution, resets and missing/model evidence still invalidate it.
+    observed = bool(indices) and not any(note not in (
+        'unregistered_discovered_child', 'missing_measured_duration', 'pending_turn') for note in notes)
     return {**deepcopy(person), 'participant_id': session['meta']['id'], 'thread_id': session['meta']['id'],
             'name': person.get('name') or 'Участник', 'role': person.get('role') or 'роль не указана',
             'model': next(iter(models)) if len(models) == 1 else None,
             'reasoning': next(iter(efforts)) if len(efforts) == 1 else None,
-            'usage': usage if complete else dict.fromkeys(FIELDS), 'coverage': 'complete' if complete else 'partial',
+            'usage': usage if complete or observed else dict.fromkeys(FIELDS), 'coverage': 'complete' if complete else 'partial',
             'elapsed_ms': duration if len(durations) == len(indices) and indices else None,
             'exclusive_scope': False, 'telemetry_diagnostics': sorted(set(notes)),
-            'telemetry_provenance': {'source_file': session['path'], 'turns': witnesses, 'method': 'anchored_full_turn_deltas'}}
+            'telemetry_provenance': {'source_file': session['path'], 'turns': witnesses,
+                                     'observed_through': ending['row'].get('timestamp') if indices and ending else None,
+                                     'method': 'anchored_full_turn_deltas'}}
 
 
 def _spawn(meta):
@@ -314,8 +321,59 @@ def _child(session, parent, parent_turns):
     created = _stamp(meta.get('timestamp'))
     if not created:
         return False
-    return any(_stamp(t['start'].get('timestamp')) and _stamp((t['end'] or {}).get('timestamp'))
-               and _stamp(t['start']['timestamp']) <= created <= _stamp(t['end']['timestamp']) for t in parent_turns)
+    return any(_within(created, t) for t in parent_turns)
+
+
+def _observed_end(turn):
+    """Bound unfinished native turns by observed counters, never wall time."""
+    row = turn['end'] or (turn['snapshots'][-1]['row'] if turn['snapshots'] else turn['start'])
+    return _stamp(row.get('timestamp'))
+
+
+def _within(stamp, turn):
+    start, end = _stamp(turn['start'].get('timestamp')), _observed_end(turn)
+    return bool(stamp and start and end and start <= stamp <= end)
+
+
+def _resolve_registered_people(units, sessions):
+    """Resolve explicit paths only with unique native identity and ancestry proof."""
+    registered = {}
+    for cu, unit in units.items():
+        resolved = {}
+        for identity, person in unit['people'].items():
+            path = person.get('agent_path') or (identity if identity.startswith('/') else None)
+            parent = person.get('parent_thread_id')
+            matches = [key for key, session in sessions.items() if path and parent
+                       and session['meta'].get('agent_path') == path
+                       and _spawn(session['meta']).get('agent_path') == path
+                       and session['meta'].get('parent_thread_id') == parent
+                       and _spawn(session['meta']).get('parent_thread_id') == parent]
+            actual = matches[0] if identity not in sessions and len(matches) == 1 else identity
+            if actual != identity:
+                person = {**person, 'registered_identity': identity}
+            resolved[actual] = person
+            registered.setdefault(actual, set()).add(cu)
+        unit['people'] = resolved
+    return registered
+
+
+def resolve_agent_identity(root, agent_path, parent_thread_id):
+    """Resolve a canonical task path to one proven native UUID, read-only."""
+    if not isinstance(agent_path, str) or not agent_path.startswith('/') or not parent_thread_id:
+        raise ValueError('an exact canonical agent path and parent thread are required')
+    matches = []
+    for identity, paths in _index(root, _settings(root)).items():
+        if len(paths) != 1:
+            continue
+        header = _header(paths[0])
+        meta = header['payload'] if header else {}
+        if (meta.get('agent_path') == agent_path and _spawn(meta).get('agent_path') == agent_path
+                and meta.get('parent_thread_id') == parent_thread_id
+                and _spawn(meta).get('parent_thread_id') == parent_thread_id):
+            matches.append(identity)
+    if len(matches) != 1:
+        raise ValueError('cannot resolve one native worker for this exact agent path and parent; retry after its native session header exists, or supply its verified thread UUID')
+    return matches[0]
 
 
 def _sessions(root, settings, events):
@@ -350,6 +408,7 @@ def enrich_report(root, data, events):
         return out
     sessions = _sessions(root, settings, events)
     units, claims, registered = _claims(events, sessions)
+    registered = _resolve_registered_people(units, sessions)
     independent = False
     evidence = settings.get('independent_scope_evidence')
     if evidence:
@@ -373,8 +432,7 @@ def enrich_report(root, data, events):
                     continue
                 if not _child(session, thread, parent_turns):
                     child_time = _stamp(session['meta'].get('timestamp'))
-                    in_span = child_time and any(_stamp(t['start'].get('timestamp')) and _stamp((t['end'] or {}).get('timestamp'))
-                              and _stamp(t['start']['timestamp']) <= child_time <= _stamp(t['end']['timestamp']) for t in parent_turns)
+                    in_span = any(_within(child_time, t) for t in parent_turns)
                     if session['meta'].get('parent_thread_id') == thread and (identity in u['people'] or in_span):
                         children.add(identity); notes.append('child_ancestry_or_spawn_not_verified')
                     continue
@@ -394,11 +452,9 @@ def enrich_report(root, data, events):
                 if registered.get(identity, set()) - {unit['cu_id']}:
                     child_notes.append('child_reused_across_control_units')
                 chosen = {i for i, turn in enumerate(session['turns']) if any(
-                    _stamp(turn['start'].get('timestamp')) and _stamp(parent['start'].get('timestamp'))
-                    and _stamp((parent['end'] or {}).get('timestamp'))
-                    and _stamp(parent['start']['timestamp']) <= _stamp(turn['start']['timestamp']) <= _stamp(parent['end']['timestamp']) for parent in parent_turns)}
-                if any(not turn['end'] or not any(_stamp((turn['end'] or {}).get('timestamp')) and _stamp((parent['end'] or {}).get('timestamp'))
-                       and _stamp(turn['end']['timestamp']) <= _stamp(parent['end']['timestamp']) for parent in parent_turns)
+                    _within(_stamp(turn['start'].get('timestamp')), parent) for parent in parent_turns)}
+                if any(not any(_within(_observed_end(turn), parent)
+                       and _within(_stamp(turn['start'].get('timestamp')), parent) for parent in parent_turns)
                        for i, turn in enumerate(session['turns']) if i in chosen):
                     child_notes.append('child_turn_exceeds_parent_span')
                 participants.append(_measure(session, chosen, person, child_notes))

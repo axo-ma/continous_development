@@ -66,6 +66,17 @@ class WorkUnitTests(unittest.TestCase):
         data['units'][0]['participants'][0]['exclusive_scope']=False
         self.assertIsNone(wu.annotate_report(data)['work_units']['total']['known_value'])
 
+    def test_observed_pending_usage_is_partial_and_only_independent_subtotal(self):
+        data=self.report([self.person(coverage='partial')],usage_status='partial')
+        result=wu.annotate_report(data)['units'][0]
+        self.assertEqual(result['participants'][0]['work_units']['status'],'partial')
+        self.assertEqual(result['work_units']['known_value'],'3.107828')
+        self.assertIsNone(result['work_units']['value'])
+        data['units'][0]['participants'][0]['exclusive_scope']=False
+        result=wu.annotate_report(data)['units'][0]
+        self.assertEqual(result['participants'][0]['work_units']['known_value'],'3.107828')
+        self.assertIsNone(result['work_units']['known_value'])
+
     def test_parent_inclusion_unknown_is_not_summed(self):
         out=wu.annotate_report(self.report([self.person(exclusive_scope=False)],usage_status='unknown'))
         self.assertIsNone(out['units'][0]['work_units']['value'])
