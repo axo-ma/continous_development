@@ -77,3 +77,5 @@ Defaults: at most 300 hot CU events / 256 KiB, retired in batches to 75% of the 
 ## Readable report layout
 
 The overview fits the containing browser panel. Use short row ordinals and compact dates; retain complete CU IDs in readable details. Keep main plan/actual cells numeric and short, with full unknown reasons and participant measurements available on click. Long task/result text opens in details. Narrow panels use stacked rows; expanded teams and details must also fit without horizontal page scrolling. Keep operational checkpoint details collapsed initially so they do not push the overview off screen.
+
+When the team total is unknown but the sole HQ has verified measured WU, show that amount as HQ usage in the compact row, explicitly separate from the unknown team total. Use a partial/lower-bound marker for unfinished coverage; do not add child counters merely to fill the main cell.
