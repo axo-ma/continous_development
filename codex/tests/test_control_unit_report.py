@@ -314,6 +314,11 @@ const unit={budget:{forecast:{low:'3',high:'6',confidence:'medium'},limit:'8',or
 assert.deepEqual(budgetCell(unit).children[0].children.map(n=>n.text),['План 3–6','Факт 4,81','Подробнее']);
 assert.deepEqual(budgetCell({}).children[0].children.map(n=>n.text),['План —','Факт —','Нет измерений']);const longReason='Long reason '.repeat(200);assert(!texts(budgetCell({budget:{forecast_unknown_reason:longReason}})).includes(longReason));assert(budgetDescription({budget:{forecast_unknown_reason:longReason}}).some(text=>text.includes(longReason)));
 assert.deepEqual(budgetCell({budget:{forecast:{low:'0',high:'0'},limit:'0'},work_units:{value:'0',status:'complete'}}).children[0].children.map(n=>n.text),['План 0–0','Факт 0,00','Подробнее']);
+const knownHQ={work_units:{status:'unknown'},participants:[{role:'hq',work_units:{known_value:'75.791588',status:'complete'}},{role:'helper',work_units:{known_value:'12',status:'complete'}}]};
+assert.equal(budgetCell(knownHQ).children[0].children[1].text,'Штаб 75,79');
+assert.equal(budgetCell(knownHQ).children[0].children[2].text,'Итог команды —');
+knownHQ.participants[0].work_units.status='partial';assert.equal(budgetCell(knownHQ).children[0].children[1].text,'Штаб ≥ 75,79');
+assert(!texts(budgetCell(knownHQ)).some(text=>text.includes('87,79')));
 assert.equal(formatBudget('0.001'),'0,001');
 assert.equal(formatBudget(null),'—');
 const complete=budgetDescription(unit);
