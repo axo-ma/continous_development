@@ -169,7 +169,7 @@ BRIEF_ITEMS = {
     'цель': r'цель|goal',
     'результат': r'результат|expected result|return',
     'проверка': r'проверк|verif|check',
-    'можно менять': r'можно менять|write (area|scope)|may (edit|change|write)|read[- ]only',
+    'можно менять': r'можно менять|только читать|ничего не (из)?меня|write (area|scope)|may (edit|change|write)|read[- ]only',
     'бюджет': r'бюджет|budget',
 }
 
