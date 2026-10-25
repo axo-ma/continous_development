@@ -44,6 +44,42 @@ authorized OS startup service. No active agent is needed while waiting.
 
 ## Host adapter contract
 
+`codex_host_probe.py --codex <executable> [--socket <existing-control-socket>]`
+is a bundled read-only diagnostic adapter. It connects only through `app-server
+proxy`; it never starts an independent server. It checks native thread metadata
+and account limits, but returns `wake_supported=false`: the installed protocol
+does not establish atomic conditional-idle delivery or complete worker coverage.
+An unavailable Desktop control socket is an explicit blocker, not permission to
+start a second server or infer idle from history.
+
+`scripts/install_planner_watch.ps1 -Project <root> -Python <python.exe> -Adapter
+<argv.json>` registers and starts a single Windows logon task, using sibling
+`pythonw.exe`, no stored password and no elevated task principal. Existing tasks
+are never overwritten. `-Remove` unregisters the named task. The watchdog survives
+agent turns and starts on the next user logon after reboot; it cannot run before
+login or while the computer is off. Checks are local and do not launch model turns.
+
+### Canonical checkpoint integration
+
+Once control files exist, `project_memory.py write-checkpoint` automatically
+mirrors the HQ lifecycle record. Example (synthetic):
+
+```json
+{"planner_control":{"state":"WAIT_QUOTA","reason":"Five-hour quota boundary","authorized":true,"reset_at":1800000000},"next_action":{"kind":"review_saved_result"}}
+```
+
+This is an excerpt, not a complete valid CHECKPOINT. Every opted-in HQ save must
+declare the state and reason. The operational fingerprint binds admission to the
+exact checkpoint; an unsynchronized edit blocks continuation. STOP, completion,
+owner changes and CD5 off override the lifecycle record. The integration never
+creates files or arms a project automatically. Control-file write failure is
+reported even if the canonical checkpoint was already saved.
+
+Use `reconcile` after a journal/state mismatch to preserve history and recover the
+last complete journal snapshot as BLOCKED. Damaged/truncated journal lines require
+manual inspection. Recovery never repeats a dispatch or clears STOP; a later
+explicit user reconciliation is required before rearming.
+
 The adapter configuration is a JSON argv array, e.g. a synthetic example
 `["python", "host_adapter.py"]`. Execution uses no shell, a 30-second timeout and
 stdin/stdout JSON. The adapter must use a supported host API; scraped journal

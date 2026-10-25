@@ -122,6 +122,47 @@ class PlannerControlTests(unittest.TestCase):
                 self.assertEqual(pc.tick(root, ['unused'], 1000)['action'], 'hold')
                 self.assertEqual(call.call_count, 1)
 
+    def test_checkpoint_lifecycle_sync_and_stop_precedence(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            directory = self.project(root)
+            self.cp['planner_control'] = {'state': 'WAIT_QUOTA', 'reason': 'quota boundary',
+                                          'authorized': True, 'reset_at': 2000}
+            self.cp['next_action'] = {'kind': 'review_saved_result'}
+            pc.atomic(directory / 'CHECKPOINT.json', self.cp)
+            pc.sync_checkpoint(root, self.cp)
+            state = pc.load(directory)
+            self.assertEqual(state['state'], 'WAIT_QUOTA')
+            self.assertEqual(state['resume_after'], 2060)
+            changed = {**self.cp, 'revision': 2}
+            self.assertEqual(pc.decide(state, changed, self.obs, 3000)[0], 'hold')
+            self.cp['user_stop']['active'] = True
+            pc.sync_checkpoint(root, self.cp)
+            self.assertEqual(pc.load(directory)['state'], 'STOP')
+
+    def test_missing_lifecycle_record_blocks_opted_in_project(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            directory = self.project(root)
+            pc.sync_checkpoint(root, self.cp)
+            self.assertEqual(pc.load(directory)['state'], 'BLOCKED')
+
+    def test_readonly_host_cannot_dispatch(self):
+        self.obs['wake_supported'] = False
+        self.assertEqual(self.decision(), 'hold')
+
+    def test_reconcile_after_interrupted_commit_never_rearms(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            directory = self.project(root)
+            old = pc.load(directory)
+            with patch.object(pc, 'atomic', side_effect=OSError('synthetic')):
+                with self.assertRaises(OSError):
+                    pc.save(directory, old, 'DISPATCHING', 'reserved', 'watchdog')
+            pc.main(['--root', str(root), 'reconcile'])
+            self.assertEqual(pc.load(directory)['state'], 'BLOCKED')
+            self.assertFalse(pc.load(directory)['authorized'])
+
 
 if __name__ == '__main__':
     unittest.main()

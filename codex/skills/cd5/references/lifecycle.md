@@ -1,5 +1,15 @@
 # CD5 lifecycle
 
+For projects opted into [Planner control](planner-control.md), every HQ checkpoint
+must include `planner_control` with explicit `state`, `reason` and `authorized`.
+Use RUNNING at admission/bounded work boundaries, WAIT_QUOTA with observed
+`reset_at` (Unix seconds) before quota exit, WAIT_WORKER when waiting, WAIT_USER
+for a human decision and COMPLETE only after verification. The memory API mirrors
+these into operational state/events automatically. Missing lifecycle records block
+an opted-in controller; they never imply runnable work. Keep `next_action` useful
+and preserve STOP, protocol and budget gates. Do not refresh a RUNNING lease while
+idle or start model turns merely to refresh it.
+
 At the start and before each substantive stage, read project instructions, OUTLINE, CHECKPOINT, and only the relevant linked KNOWLEDGE, EVIDENCE, and ATTENTION records. Establish the current owner, goal, next useful action, STOP, and applicable limits. Read fresh quota and native activity status where the project requires them. Unknown quota or activity is not clearance.
 
 An explicit user STOP remains in force until the user resumes it. Turning CD5 off pauses CD5 activity; it does not erase the goal, change STOP, or alter MAC. Turning CD5 on resumes only within existing scope and authorization. A workflow or memory change never authorizes a new run.
