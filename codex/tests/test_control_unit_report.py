@@ -175,7 +175,7 @@ assert.deepEqual(panelTexts({goal:'Summary',description:'Actual details'},'goal'
         def report_data(root, **options):
             calls.append((root, options))
             return self.fixture()
-        fake = types.SimpleNamespace(report_data=report_data)
+        fake = types.SimpleNamespace(report_data=report_data, _events=lambda root: [])
         with tempfile.TemporaryDirectory(dir=Path(__file__).parents[1]) as directory:
             output = Path(directory) / 'report.html'
             with patch.dict(sys.modules, {'control_units': fake}):
@@ -191,7 +191,7 @@ assert.deepEqual(panelTexts({goal:'Summary',description:'Actual details'},'goal'
             return data
         with tempfile.TemporaryDirectory(dir=Path(__file__).parents[1]) as directory:
             output = Path(directory) / 'report.html'
-            with patch.dict(sys.modules, {'control_units': types.SimpleNamespace(report_data=report_data)}):
+            with patch.dict(sys.modules, {'control_units': types.SimpleNamespace(report_data=report_data, _events=lambda root: [])}):
                 report.main(['--root', directory, '--output', str(output)])
             payload = json.loads(output.read_text(encoding='utf-8').split('<script id="report-data" type="application/json">')[1].split('</script>')[0])
         self.assertTrue(calls[0]['all_units'])
@@ -295,9 +295,9 @@ assert.equal(exact.children.length,0);
         template = Path(report.__file__).with_suffix('.html').read_text(encoding='utf-8')
         heading = template.split('<table aria-label="Control Units">', 1)[1].split('</thead>', 1)[0]
         self.assertEqual(heading.count('<th>') + heading.count('<th '), 7)
-        self.assertIn('План / факт<br>WU</th>', heading)
+        self.assertIn('План / Факт<br>WU</th>', heading)
         self.assertNotIn('Вход из кэша', heading)
-        self.assertIn("costCell(data.work_units?.total,'td','Факт ')", template)
+        self.assertIn("costCell(data.work_units?.total,'td','Actual ')", template)
         self.assertNotIn('const sums=', template)
 
     @unittest.skipUnless(shutil.which('node'), 'Node is optional for budget cell verification')
@@ -311,13 +311,13 @@ function time(value){return value||'—';}
 function texts(node){return [node.text??'',...node.children.flatMap(texts)];}
 ''' + functions + '''
 const unit={budget:{forecast:{low:'3',high:'6',confidence:'medium'},limit:'8',original_forecast:{low:'2',high:'5',confidence:'low'},history:[]},work_units:{value:'4.814348',status:'complete'},budget_comparison:{forecast_status:'within',limit_status:'below',forecast_basis:'original'}};
-assert.deepEqual(budgetCell(unit).children[0].children.map(n=>n.text),['План 3–6','Факт 4,81','Подробнее']);
-assert.deepEqual(budgetCell({}).children[0].children.map(n=>n.text),['План —','Факт —','Нет измерений']);const longReason='Long reason '.repeat(200);assert(!texts(budgetCell({budget:{forecast_unknown_reason:longReason}})).includes(longReason));assert(budgetDescription({budget:{forecast_unknown_reason:longReason}}).some(text=>text.includes(longReason)));
-assert.deepEqual(budgetCell({budget:{forecast:{low:'0',high:'0'},limit:'0'},work_units:{value:'0',status:'complete'}}).children[0].children.map(n=>n.text),['План 0–0','Факт 0,00','Подробнее']);
+assert.deepEqual(budgetCell(unit).children[0].children.map(n=>n.text),['План 3–6','Факт 4,81','Все участники']);
+assert.deepEqual(budgetCell({}).children[0].children.map(n=>n.text),['План не записан','Факт —','Расход команды пока не подтверждён']);const longReason='Long reason '.repeat(200);assert(!texts(budgetCell({budget:{forecast_unknown_reason:longReason}})).includes(longReason));assert(budgetDescription({budget:{forecast_unknown_reason:longReason}}).some(text=>text.includes(longReason)));
+assert.deepEqual(budgetCell({budget:{forecast:{low:'0',high:'0'},limit:'0'},work_units:{value:'0',status:'complete'}}).children[0].children.map(n=>n.text),['План 0–0','Факт 0,00','Все участники']);
 const knownHQ={work_units:{status:'unknown'},participants:[{role:'hq',work_units:{known_value:'75.791588',status:'complete'}},{role:'helper',work_units:{known_value:'12',status:'complete'}}]};
-assert.equal(budgetCell(knownHQ).children[0].children[1].text,'Штаб 75,79');
-assert.equal(budgetCell(knownHQ).children[0].children[2].text,'Итог команды —');
-knownHQ.participants[0].work_units.status='partial';assert.equal(budgetCell(knownHQ).children[0].children[1].text,'Штаб ≥ 75,79');
+assert.equal(budgetCell(knownHQ).children[0].children[1].text,'Факт —');
+assert.equal(budgetCell(knownHQ).children[0].children[2].text,'Расход команды пока не подтверждён');
+knownHQ.participants[0].work_units.status='partial';assert.equal(budgetCell(knownHQ).children[0].children[1].text,'Факт —');
 assert(!texts(budgetCell(knownHQ)).some(text=>text.includes('87,79')));
 assert.equal(formatBudget('0.001'),'0,001');
 assert.equal(formatBudget(null),'—');
@@ -328,7 +328,7 @@ assert(complete.includes('Уверенность прогноза: средня�
 const partial={...unit,work_units:{value:null,status:'partial',known_value:'4.814348'},budget_comparison:{forecast_status:'above',limit_status:'exceeded',forecast_basis:'original'}};
 assert(!budgetDescription(partial).some(line=>line.includes('превышен')||line.includes('относительно')));
 assert.equal(budgetCell(partial).children[0].children[1].text,'Факт ≥ 4,81');
-assert.equal(budgetCell(partial).children[0].children[2].text,'Измеренная часть');let opened=false;function openBudget(value,trigger){assert.equal(value,unit);opened=true;}budgetCell(unit).children[0].listeners.click();assert(opened);
+assert.equal(budgetCell(partial).children[0].children[2].text,'Учтена часть расхода команды');let opened=false;function openBudget(value,trigger){assert.equal(value,unit);opened=true;}budgetCell(unit).children[0].listeners.click();assert(opened);
 assert(!texts(budgetDetails(unit)).includes('История изменений'));assert(!texts(budgetDetails(unit)).some(line=>/лимит/i.test(line)));assert(budgetDescription({budget:{forecast_unknown_reason:'No comparable history'}}).includes('Почему нет плана: No comparable history'));
 const hostile='<img src=x onerror=alert(1)>';
 const revised={...unit,budget:{...unit.budget,history:[{at:'2026-10-21',event_id:'revision-1',forecast:{low:'3',high:'6',confidence:'medium'},limit:'8',reason:hostile}]}};

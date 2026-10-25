@@ -47,10 +47,10 @@ def render(png=False):
         rect(left,179,width,46,SURFACE);text(left+12,211,label,22,LINK)
     x=[65,190,430,850,1260,1395,1570]
     rect(50,250,1700,52,SURFACE)
-    for pos,label in zip(x,['№','Запуск МСК','Задача','Результат','Время','Люди','План / факт']):text(pos,285,label,23,MUTED)
+    for pos,label in zip(x,['№','Запуск МСК','Задача','Результат','Время','Agents','План / Факт']):text(pos,285,label,23,MUTED)
     def task(y,identity,date,title,result,forecast,actual,expanded=False):
         rect(50,y,1700,110,SURFACE);rect(1540,y,210,110,SOFT)
-        for pos,value in zip(x[:6],[identity,date,title,result,'2 мин','↓ Люди' if expanded else '› Люди']):
+        for pos,value in zip(x[:6],[identity,date,title,result,'2 мин','↓ Agents' if expanded else '› Agents']):
             text(pos,y+47,value,22,LINK if pos in (430,850,1395) else INK)
         text(1570,y+40,'План '+forecast,21);text(1570,y+82,'Факт '+actual,23)
         line(y+110)
@@ -59,8 +59,8 @@ def render(png=False):
     text(82,453,'Команда · CU-012',25)
     tx=[82,310,500,720,850,1010,1230,1450,1620]
     for pos,label in zip(tx,['Участник','Роль','Модель','Effort','Время','Из кэша','Вне кэша','Выход','WU']):text(pos,497,label,21,MUTED)
-    people=[['Штаб','hq','Sol 6.1','low','2 мин','2 458 368','16 308','3 233','3,11'],
-            ['Проверяющий','reviewer','Sol 6.1','high','40 с','418 560','42 553','4 369','1,71']]
+    people=[['Planner','hq','Sol 6.1','low','2 мин','2 458 368','16 308','3 233','3,11'],
+            ['Reviewer','reviewer','Sol 6.1','high','40 с','418 560','42 553','4 369','1,71']]
     for row,values in enumerate(people):
         for pos,value in zip(tx,values):text(pos,539+row*42,value,22)
     text(82,627,'Итого команды · время ходов штаба',22)

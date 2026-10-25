@@ -107,6 +107,19 @@ class WorkUnitTests(unittest.TestCase):
         value=wu.annotate_report(data)['work_units']['total']['value']
         self.assertEqual(value,'0.009998')
 
+    def test_window_view_costs_recompute_from_raw_tokens(self):
+        data=self.report()
+        actor={'thread_id':'actor','model':'gpt-6.1-sol','coverage':'complete',
+               'usage':{'cached_input':1000000,'uncached_input':0,'output':0},
+               'work_units':{'value':'999999'}}
+        data['quota_usage']={'windows':[{'actors':[actor], 'assignments':[copy.deepcopy(actor)]}],
+                             'unassigned':[copy.deepcopy(actor)]}
+        priced=wu.annotate_report(data)
+        self.assertEqual(priced['quota_usage']['windows'][0]['actors'][0]['work_units']['value'],'1')
+        self.assertEqual(priced['quota_usage']['windows'][0]['assignments'][0]['work_units']['value'],'1')
+        self.assertEqual(priced['quota_usage']['unassigned'][0]['work_units']['value'],'1')
+        self.assertEqual(actor['work_units']['value'],'999999')
+
     def test_custom_dated_rates_and_invalid_rate(self):
         rates=wu.load_rates();rates['rates_per_million']['gpt-6-luna']['output']='7'
         with tempfile.TemporaryDirectory(dir=ROOT) as directory:

@@ -160,6 +160,38 @@ def _annotate(data, rates):
                              subscription_note=rates.get('subscription_note', ''),
                              rates=[{'model': model, **{k: _text(_decimal(row[k])) for k in FIELDS}}
                                     for model, row in rates['rates_per_million'].items()])
+    quota = out.get('quota_usage')
+    if isinstance(quota, dict):
+        def price_rows(rows):
+            for row in rows:
+                models = row.get('models') or []
+                model = row.get('model') or (models[0] if len(models) == 1 else None)
+                if len(set(models)) > 1:
+                    model = None
+                row['work_units'] = price_usage(model, row.get('usage'),
+                                                coverage=row.get('coverage', 'unknown'), rates=rates)
+        def actors_from(rows, fallback):
+            # Rebuild actor cards from their per-model, per-turn request rows.
+            # This preserves valid model splits and applies the selected rates.
+            if rows and all(row.get('thread_id') and isinstance(row.get('usage'), dict)
+                            and all(type(row['usage'].get(k)) is int for k in FIELDS) for row in rows):
+                try:
+                    from .quota_usage import _actors
+                except ImportError:
+                    from quota_usage import _actors
+                normalized = [{**row, 'request_count': row.get('request_count', 0),
+                               'observed_from': row.get('observed_from'),
+                               'observed_through': row.get('observed_through')} for row in rows]
+                return _actors(normalized, rates)
+            price_rows(fallback)
+            return fallback
+        for window in quota.get('windows', []):
+            rows = window.get('assignments', [])
+            price_rows(rows)
+            window['actors'] = actors_from(rows, window.get('actors', []))
+        rows = quota.get('unassigned', [])
+        price_rows(rows)
+        quota['unassigned_actors'] = actors_from(rows, quota.get('unassigned_actors', []))
     if 'views' in out:
         if not isinstance(out['views'], list):
             raise ValueError('report views must be a list')

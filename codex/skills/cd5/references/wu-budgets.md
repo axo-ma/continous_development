@@ -2,7 +2,7 @@
 
 These are separate values for one whole CU, including HQ, executors, helpers and review:
 
-- **Forecast**: an expected WU range with low/medium/high confidence. It guides work; it is not a spending cap or a quality target. Include a rough assessment in normal planning, without a separate estimator agent or long explanation. If there is no defensible estimate, leave it unknown.
+- **Forecast**: an expected WU range with low/medium/high confidence. It guides work; it is not a spending cap or a quality target. Include a rough assessment in normal planning, without a separate estimator agent or long explanation. Before all new work, a numeric whole-team range is mandatory. For unfamiliar work, give a wider justified range; an unknown reason never replaces the number.
 - **Limit**: an optional, explicitly chosen maximum allocation, independent of the forecast. Do not silently turn the forecast's upper bound into a limit. It cannot override user permissions, project STOP, quotas or scientific budgets.
 - **Actual**: the factual WU derived by the existing usage collector and dated base-cost estimator. It can be incomplete until journals settle. Verified observed counters in an open turn are displayed as an explicitly partial amount at the snapshot time; missing duration does not erase valid token measurements. Do not compare unknown/partial amounts as though they were a complete actual.
 
@@ -14,7 +14,7 @@ Reuse the normal begin mark with a rough prospective forecast (synthetic example
 python <skill>/scripts/control_units.py --root <project> begin --cu <id> --title "Existing task" --caller-thread <owner> --forecast-low 3 --forecast-high 6 --confidence medium
 ```
 
-Normal `begin` requires both ends of the range or `--forecast-unknown-reason "No comparable completed work"`. New non-historical `record` opens enforce the same contract with `forecast` or `forecast_unknown_reason`. The short reason is saved as `budget.forecast_unknown_reason`; it leaves the forecast unknown and does not fabricate an estimate. Bare new opens fail before writing with an actionable message. Historical imports, existing event replay and idempotent retries remain compatible; existing missing forecasts are never backfilled. No WU limit is required; any independently authorized limit remains optional. Zero is a measured/planned zero; absence is not zero. Forecast/limit values are exact nonnegative decimal strings on the currently configured WU tariff date.
+Normal `begin` and new non-historical `record` opens require both numeric ends of the whole-team range. Unknown-reason-only opens fail before writing. Historical imports and event replay remain compatible; never backfill an absent original forecast. Before continuing an older open CU, save a numeric prospective revision for remaining work, clearly distinct from the missing original. No WU limit is required.
 
 Pass CU ID, forecast range/confidence and any separately authorized limit in the existing executor brief. The executor uses the forecast as orientation, avoids unnecessary repeats, and reports material scope/cost changes with the cause and remaining work. Do not lower quality merely to fit the forecast. If the limit appears insufficient, return to HQ before starting further work expected to exceed it; HQ chooses to narrow, continue with a revised allocation, or stop. Do not send repeated bookkeeping messages for each tool call. A whole-team CU allocation must not be copied as a full personal budget to each agent.
 
@@ -24,7 +24,7 @@ An explicit revision keeps the original values and adds a short reason:
 python <skill>/scripts/control_units.py --root <project> budget --cu <id> --caller-thread <owner> --event-id <stable-revision-id> --forecast-low 5 --forecast-high 9 --limit-wu 10 --reason "Existing scope change"
 ```
 
-Omitted values are preserved. `--clear-forecast` and `--clear-limit` explicitly remove the current value without erasing history. Repeating an event ID is idempotent; changed content requires a new ID. `finish` still reuses the existing short result and does not require a separate budget report.
+Omitted values are preserved. `--clear-limit` removes the optional limit without erasing history. A forecast for active non-historical work cannot be cleared; revise its numeric range. Repeating an event ID is idempotent; changed content requires a new ID. `finish` still reuses the existing short result and does not require a separate budget report.
 
 The program records the initial forecast only if supplied at CU open. Later estimates remain revisions, not fabricated predictions from before work. Closed CU budgets cannot be rewritten after observing results. When comparing for calibration, keep the original forecast as the baseline even when the current planning range changes; show the saved revision history in details. Do not backfill historical forecasts.
 

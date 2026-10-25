@@ -428,6 +428,13 @@ def write_checkpoint(root,value,role):
  try:
   _assert_no_migration(base)
   _atomic(p,(json.dumps(value,ensure_ascii=False,indent=2)+'\n').encode())
+  # Operational lifecycle mirrors canonical HQ saves only for opted-in projects.
+  # Failure is visible; fingerprint admission prevents stale-state continuation.
+  try:
+   from .planner_control import sync_checkpoint
+  except ImportError:
+   from planner_control import sync_checkpoint
+  sync_checkpoint(base,value)
  finally: lock.unlink(missing_ok=True)
  return value
 
