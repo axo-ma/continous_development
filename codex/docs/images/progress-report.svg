@@ -23,7 +23,7 @@
 <text x="850" y="285" fill="#a7b3c6" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="23">Результат</text>
 <text x="1260" y="285" fill="#a7b3c6" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="23">Время</text>
 <text x="1395" y="285" fill="#a7b3c6" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="23">Agents</text>
-<text x="1570" y="285" fill="#a7b3c6" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="23">Plan / Actual</text>
+<text x="1570" y="285" fill="#a7b3c6" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="23">План / Факт</text>
 <rect x="50" y="302" width="1700" height="110" fill="#202936"/>
 <rect x="1540" y="302" width="210" height="110" fill="#253247"/>
 <text x="65" y="349" fill="#e8edf5" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="22">1</text>
@@ -32,8 +32,8 @@
 <text x="850" y="349" fill="#9bc0ff" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="22">Отчёт готов</text>
 <text x="1260" y="349" fill="#e8edf5" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="22">2 мин</text>
 <text x="1395" y="349" fill="#9bc0ff" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="22">↓ Agents</text>
-<text x="1570" y="342" fill="#e8edf5" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="21">Plan 3–6</text>
-<text x="1570" y="384" fill="#e8edf5" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="23">Actual 4,81</text>
+<text x="1570" y="342" fill="#e8edf5" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="21">План 3–6</text>
+<text x="1570" y="384" fill="#e8edf5" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="23">Факт 4,81</text>
 <path d="M50 412H1750" stroke="#3a475b"/>
 <rect x="50" y="412" width="1700" height="250" fill="#253247"/>
 <text x="82" y="453" fill="#e8edf5" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="25">Команда · CU-012</text>
@@ -78,8 +78,8 @@
 <text x="850" y="709" fill="#9bc0ff" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="22">Проверки пройдены</text>
 <text x="1260" y="709" fill="#e8edf5" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="22">2 мин</text>
 <text x="1395" y="709" fill="#9bc0ff" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="22">› Agents</text>
-<text x="1570" y="702" fill="#e8edf5" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="21">Plan 2–4</text>
-<text x="1570" y="744" fill="#e8edf5" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="23">Actual 2,40</text>
+<text x="1570" y="702" fill="#e8edf5" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="21">План 2–4</text>
+<text x="1570" y="744" fill="#e8edf5" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="23">Факт 2,40</text>
 <path d="M50 772H1750" stroke="#3a475b"/>
 <rect x="50" y="772" width="1700" height="110" fill="#202936"/>
 <rect x="1540" y="772" width="210" height="110" fill="#253247"/>
@@ -89,8 +89,8 @@
 <text x="850" y="819" fill="#9bc0ff" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="22">Инструкция обновлена</text>
 <text x="1260" y="819" fill="#e8edf5" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="22">2 мин</text>
 <text x="1395" y="819" fill="#9bc0ff" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="22">› Agents</text>
-<text x="1570" y="812" fill="#e8edf5" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="21">Plan 1–2</text>
-<text x="1570" y="854" fill="#e8edf5" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="23">Actual 1,35</text>
+<text x="1570" y="812" fill="#e8edf5" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="21">План 1–2</text>
+<text x="1570" y="854" fill="#e8edf5" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="23">Факт 1,35</text>
 <path d="M50 882H1750" stroke="#3a475b"/>
 <rect x="50" y="882" width="1700" height="110" fill="#202936"/>
 <rect x="1540" y="882" width="210" height="110" fill="#253247"/>
@@ -100,8 +100,8 @@
 <text x="850" y="929" fill="#9bc0ff" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="22">Ошибка исправлена</text>
 <text x="1260" y="929" fill="#e8edf5" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="22">2 мин</text>
 <text x="1395" y="929" fill="#9bc0ff" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="22">› Agents</text>
-<text x="1570" y="922" fill="#e8edf5" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="21">Plan 2–3</text>
-<text x="1570" y="964" fill="#e8edf5" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="23">Actual 3,60</text>
+<text x="1570" y="922" fill="#e8edf5" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="21">План 2–3</text>
+<text x="1570" y="964" fill="#e8edf5" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="23">Факт 3,60</text>
 <path d="M50 992H1750" stroke="#3a475b"/>
 <text x="65" y="1040" fill="#e8edf5" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="25">Факт по всей выбранной истории · 4 CU</text>
 <text x="1570" y="1040" fill="#e8edf5" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="25">12,16</text>

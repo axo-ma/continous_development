@@ -225,8 +225,13 @@ def _append(root, payload, event_id, at, caller):
         if payload['action'] == 'status':
             historical = _units(rows).get(payload['cu_id'], {}).get('historical', False)
         if not old and not historical and payload['action'] == 'open':
-            if not payload.get('budget', {}).get('forecast') and not payload.get('forecast_unknown_reason'):
-                raise ValueError('new CU requires a forecast range or forecast_unknown_reason; CLI: --forecast-low and --forecast-high, or --forecast-unknown-reason "short reason"; no WU limit is required')
+            if not payload.get('budget', {}).get('forecast'):
+                raise ValueError('new CU requires a numeric whole-team forecast range: --forecast-low and --forecast-high; uncertainty requires a wider justified range, not forecast_unknown_reason; no WU limit is required')
+        existing_unit = _units(rows).get(payload['cu_id'], {})
+        if not old and payload['action'] == 'budget':
+            patch = payload.get('budget', {})
+            if ('forecast' in patch and patch['forecast'] is None) or payload.get('forecast_unknown_reason'):
+                raise ValueError('active work requires a numeric whole-team forecast; revise the range instead of clearing it')
         if payload['action'] in {'open', 'status'} and not historical:
             if old:
                 if 'auto_anchor' in old['payload']:
@@ -438,8 +443,8 @@ def main(argv=None):
         if args.command in {'begin', 'finish'}:
             data = {'cu_id': args.cu, 'event_id': args.command+'-'+args.cu}
             if args.command == 'begin':
-                if fields.get('forecast') is None and not args.forecast_unknown_reason:
-                    raise ValueError('begin requires --forecast-low and --forecast-high, or --forecast-unknown-reason "short reason"; no WU limit is required')
+                if fields.get('forecast') is None:
+                    raise ValueError('begin requires --forecast-low and --forecast-high for the whole team; no WU limit is required')
                 if args.forecast_unknown_reason:
                     fields['forecast_unknown_reason'] = args.forecast_unknown_reason
                 data.update(action='open', title=args.title, goal=args.goal or args.title, **fields)

@@ -47,12 +47,12 @@ def render(png=False):
         rect(left,179,width,46,SURFACE);text(left+12,211,label,22,LINK)
     x=[65,190,430,850,1260,1395,1570]
     rect(50,250,1700,52,SURFACE)
-    for pos,label in zip(x,['№','Запуск МСК','Задача','Результат','Время','Agents','Plan / Actual']):text(pos,285,label,23,MUTED)
+    for pos,label in zip(x,['№','Запуск МСК','Задача','Результат','Время','Agents','План / Факт']):text(pos,285,label,23,MUTED)
     def task(y,identity,date,title,result,forecast,actual,expanded=False):
         rect(50,y,1700,110,SURFACE);rect(1540,y,210,110,SOFT)
         for pos,value in zip(x[:6],[identity,date,title,result,'2 мин','↓ Agents' if expanded else '› Agents']):
             text(pos,y+47,value,22,LINK if pos in (430,850,1395) else INK)
-        text(1570,y+40,'Plan '+forecast,21);text(1570,y+82,'Actual '+actual,23)
+        text(1570,y+40,'План '+forecast,21);text(1570,y+82,'Факт '+actual,23)
         line(y+110)
     task(302,'1','21.10 · 14:00','Подготовить отчёт','Отчёт готов','3–6','4,81',True)
     rect(50,412,1700,250,SOFT)

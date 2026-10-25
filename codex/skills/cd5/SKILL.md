@@ -14,7 +14,7 @@ alone never enables a schedule or supplies a desktop host adapter.
 
 For ordinary CU accounting, use [automatic usage](references/automatic-usage.md): capture short begin/finish marks and let code derive factual journal usage at report time. Do not routinely prepare manual telemetry mappings or generate separate accounting narratives.
 
-When planning or delegating a CU, use [WU budgets](references/wu-budgets.md) for a prospective forecast range (or an explicit reason it is unknown), an independently authorized optional limit, executor guidance and comparison with measured actuals. Keep original forecasts and revisions distinct; the Progress Report shows plan and actual, with missing data explained; limits remain in underlying history.
+When planning or delegating a CU, use [WU budgets](references/wu-budgets.md) for a mandatory numeric prospective forecast range for the entire team (use a wider justified range when uncertain), an independently authorized optional limit, executor guidance and comparison with measured actuals. Keep original forecasts and revisions distinct; the Progress Report shows plan and actual, with missing data explained; limits remain in underlying history.
 
 Use CD5 for an explicit long-task workflow or when a task needs durable ownership and continuity. One primary owner remains responsible for scope, integration, decisions, and completion. CD5 can run without MAC; use MAC only when a separate worker materially helps.
 

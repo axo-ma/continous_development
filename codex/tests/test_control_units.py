@@ -31,7 +31,7 @@ class ControlUnitTests(unittest.TestCase):
     def test_begin_finish_cli_reuse_short_text_and_are_idempotent(self):
         with patch('cu_auto_telemetry.capture_anchor', return_value=None), patch('builtins.print'):
             begin=['--root',str(self.root),'begin','--cu','simple','--title','Existing brief','--caller-thread','owner',
-                   '--forecast-unknown-reason','Synthetic task has no calibrated estimate']
+                   '--forecast-low','2','--forecast-high','8']
             finish=['--root',str(self.root),'finish','--cu','simple','--result','Existing outcome','--caller-thread','owner']
             self.assertEqual(cu.main(begin),0);self.assertEqual(cu.main(begin),0)
             self.assertEqual(cu.main(finish),0);self.assertEqual(cu.main(finish),0)
@@ -134,7 +134,7 @@ class ControlUnitTests(unittest.TestCase):
 
     def open(self,unit='cu-a',**fields):
         if not fields.get('historical') and not fields.get('forecast'):
-            fields.setdefault('forecast_unknown_reason','Synthetic fixture has no calibrated forecast')
+            fields.setdefault('forecast',{'low':'2','high':'8'})
         return self.record('open',unit,**{'title':unit,'goal':'Получить проверяемый результат',**fields})
 
     def person(self,thread='owner',role='hq',parent=None):
@@ -201,7 +201,7 @@ class ControlUnitTests(unittest.TestCase):
         (base/'CHECKPOINT.json').write_text(json.dumps(self.cp))
         for f in ['EVIDENCE.jsonl','KNOWLEDGE.jsonl','ATTENTION.jsonl']:(base/f).write_text('')
         cu.record(other,{'action':'open','event_id':'open','cu_id':'cu-a','title':'t','goal':'g',
-                         'forecast_unknown_reason':'Synthetic fixture has no calibrated forecast'},'owner')
+                         'forecast':{'low':'2','high':'8'}},'owner')
         for thread,role,parent in [('owner','hq',None),('child','helper','owner')]:
             cu.record(other,{'action':'participant','event_id':thread,'cu_id':'cu-a','participant':{'thread_id':thread,'role':role,'parent_thread_id':parent}},'owner')
         pm.append(other,'evidence',{'id':'scope-proof','kind':'artifact','schema_version':1,'provenance':{},'payload':{}},'hq')

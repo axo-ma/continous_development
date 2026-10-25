@@ -43,6 +43,38 @@ class AutoTelemetryTests(unittest.TestCase):
     def tearDown(self):
         self.temp.cleanup()
 
+    def test_native_request_deltas_prove_team_scope_without_manual_witness(self):
+        from tools.work_units import annotate_report
+        events = self.child_fixture()
+        for path in (self.root / 'sessions').glob('*.jsonl'):
+            rows = [json.loads(line) for line in path.read_text().splitlines()]
+            previous = None
+            for row in rows:
+                info = row.get('payload', {}).get('info')
+                if not info:
+                    continue
+                total = info['total_token_usage']
+                if previous is not None:
+                    info['last_token_usage'] = {k: total[k] - previous[k] for k in total}
+                previous = total
+            self.write(path, rows)
+        unit = auto.enrich_report(self.root, self.data(), events)['units'][0]
+        self.assertTrue(all(p['exclusive_scope'] for p in unit['participants']))
+        priced = annotate_report({'units': [unit]})['units'][0]
+        self.assertEqual(priced['work_units']['status'], 'complete')
+        from decimal import Decimal
+        self.assertEqual(Decimal(priced['work_units']['value']),
+                         sum(Decimal(p['work_units']['value']) for p in priced['participants']))
+        # A parent-inclusive/unexplained jump must invalidate the scope proof.
+        parent = self.root / 'sessions/hq.jsonl'
+        rows = [json.loads(line) for line in parent.read_text().splitlines()]
+        for row in rows:
+            info = row.get('payload', {}).get('info') or {}
+            if 'last_token_usage' in info:
+                info['last_token_usage']['input_tokens'] += 1
+        self.write(parent, rows)
+        self.assertFalse(auto._request_scoped(auto._read(parent), {0}))
+
     def session(self, identity='hq', rows=(), parent=None, verified=True, created=0):
         meta = {'id': identity, 'session_id': 'wrong-alias', 'timestamp': stamp(created)}
         if parent:

@@ -314,6 +314,35 @@ def _spawn(meta):
     return spawn if isinstance(spawn, dict) else {}
 
 
+def _request_scoped(session, indices):
+    """Verify owned request deltas, excluding inherited fork totals and repeats.
+
+Native last_token_usage is the local model response usage. Each cumulative
+advance must equal it; parent-inclusive or unexplained jumps fail this proof.
+"""
+    observed = False
+    for index in indices:
+        turn = session['turns'][index]
+        prior = turn.get('baseline')
+        if not prior or prior.get('counts') is None:
+            return False
+        previous = prior['counts']
+        for snapshot in turn['snapshots']:
+            current = snapshot.get('counts')
+            if current is None:
+                return False
+            if current == previous:
+                continue
+            info = snapshot['row'].get('payload', {}).get('info') or {}
+            local = _counts(info.get('last_token_usage'))
+            delta = {key: current[key] - previous[key] for key in FIELDS}
+            if local is None or any(value < 0 for value in delta.values()) or local != delta:
+                return False
+            observed = True
+            previous = current
+    return observed
+
+
 def _child(session, parent, parent_turns):
     meta = session['meta']; spawn = _spawn(meta)
     if meta.get('parent_thread_id') != parent or spawn.get('parent_thread_id') != parent:
@@ -421,6 +450,7 @@ def enrich_report(root, data, events):
         if not u or u['manual'] or any(p.get('coverage') not in (None, 'unknown') for p in unit.get('participants', [])):
             continue
         notes = list(u['diagnostics']); participants, children = [], set()
+        request_scopes = {}
         by_thread = {}
         for thread, index in u['selected']:
             by_thread.setdefault(thread, set()).add(index)
@@ -458,10 +488,12 @@ def enrich_report(root, data, events):
                        for i, turn in enumerate(session['turns']) if i in chosen):
                     child_notes.append('child_turn_exceeds_parent_span')
                 participants.append(_measure(session, chosen, person, child_notes))
+                request_scopes[identity] = _request_scoped(session, chosen)
                 descend(identity, chosen, [n for n in child_notes if n != 'unregistered_discovered_child'], depth + 1)
         for thread, indices in sorted(by_thread.items()):
             hq_notes = ['ambiguous_turn_claim'] if any(len(claims[(thread, i)]) > 1 for i in indices) else []
             participants.append(_measure(sessions[thread], indices, u['people'].get(thread, {'role': 'hq', 'name': 'Штаб'}), hq_notes))
+            request_scopes[thread] = _request_scoped(sessions[thread], indices)
             descend(thread, indices, hq_notes)
         missing = set(u['people']) - set(by_thread) - children
         if missing:
@@ -471,11 +503,14 @@ def enrich_report(root, data, events):
                 participants.append({**deepcopy(u['people'][identity]), 'participant_id': identity,
                                      'usage': dict.fromkeys(FIELDS), 'coverage': 'unknown', 'elapsed_ms': None,
                                      'exclusive_scope': False, 'telemetry_diagnostics': ['no_verified_turns']})
-        if children and not independent:
+        verified_scope = independent or (bool(participants) and all(request_scopes.get(p['thread_id']) for p in participants))
+        if children and not verified_scope:
             notes.append('parent_child_scope_not_verified')
         complete = bool(participants) and not notes and all(p['coverage'] == 'complete' for p in participants)
         for person in participants:
-            person['exclusive_scope'] = not children or independent
+            person['exclusive_scope'] = not children or independent or request_scopes.get(person['thread_id'], False)
+            if request_scopes.get(person['thread_id']):
+                person['telemetry_provenance']['scope_method'] = 'native_local_response_deltas_match_cumulative_advances'
         unit['participants'] = participants
         unit['usage'] = {key: sum(p['usage'][key] for p in participants) if complete else None for key in FIELDS}
         unit['usage_status'] = 'complete' if complete else ('partial' if by_thread else 'unknown')

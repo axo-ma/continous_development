@@ -35,7 +35,7 @@ class BudgetTests(unittest.TestCase):
         if action=='open':
             data.update(title='Existing work',goal='Existing expected result')
             if not values.get('historical') and not values.get('forecast'):
-                data.setdefault('forecast_unknown_reason','Synthetic fixture has no calibrated forecast')
+                data.setdefault('forecast',{'low':'2','high':'8'})
         return cu.record(self.root,data,'owner')
 
     def unit(self):return cu.report_data(self.root,auto_telemetry=False)['units'][0]
@@ -58,32 +58,23 @@ class BudgetTests(unittest.TestCase):
         self.assertEqual(json.loads((self.base/'CHECKPOINT.json').read_text()),self.cp)
 
     def test_missing_forecast_not_invented_and_late_prediction_not_original(self):
-        self.record()
+        self.record(historical=True)
         before=self.unit()['budget']
         self.assertIsNone(before['forecast']);self.assertIsNone(before['limit']);self.assertEqual(before['history'],[])
         self.record('budget',forecast={'low':'2','high':'4'},reason='New information')
         self.assertIsNone(self.unit()['budget']['original_forecast'])
         self.assertEqual(self.unit()['budget']['forecast']['confidence'],'low')
 
-    def test_current_unknown_reason_revision_is_visible_and_never_original(self):
-        import contextlib
-        import io
+    def test_remaining_work_requires_numeric_revision_without_backfilling_original(self):
         self.record(historical=True)
-        args=['--root',str(self.root),'budget','--cu','cu','--caller-thread','owner',
-              '--event-id','current-reason','--reason','Prospective review of remaining work',
-              '--forecast-unknown-reason','No comparable measured work for remaining scope']
-        with contextlib.redirect_stdout(io.StringIO()):
-            self.assertEqual(cu.main(args),0)
-            self.assertEqual(cu.main(args),0)
-        value=self.unit()['budget']
-        self.assertEqual(value['forecast_unknown_reason'],'No comparable measured work for remaining scope')
-        self.assertIsNone(value['original_forecast'])
-        self.assertIsNone(value['forecast'])
-        self.assertEqual(len(value['history']),1)
-        self.record('budget',event_id='later-plan',forecast={'low':'1','high':'3'},reason='New prospective estimate')
+        with self.assertRaises(ValueError):
+            self.record('budget',forecast_unknown_reason='Uncertain work',reason='Remaining scope')
+        self.record('budget',event_id='numeric',forecast={'low':'2','high':'12'},reason='Wide estimate for remaining scope')
         value=self.unit()['budget']
         self.assertIsNone(value['original_forecast'])
-        self.assertNotIn('forecast_unknown_reason',value)
+        self.assertEqual(value['forecast']['high'],'12')
+        with self.assertRaises(ValueError):
+            self.record('budget',event_id='clear',forecast=None,reason='Cannot clear required plan')
 
     def test_begin_requires_plan_or_explicit_unknown_without_a_limit(self):
         import contextlib
@@ -91,18 +82,20 @@ class BudgetTests(unittest.TestCase):
         args=['--root',str(self.root),'begin','--cu','cu','--title','Synthetic task','--caller-thread','owner']
         with contextlib.redirect_stderr(io.StringIO()) as errors, self.assertRaises(SystemExit):
             cu.main(args)
-        self.assertIn('--forecast-unknown-reason', errors.getvalue())
+        self.assertIn('--forecast-low', errors.getvalue())
         self.assertEqual(cu._events(self.root), [])
         with contextlib.redirect_stdout(io.StringIO()):
-            self.assertEqual(cu.main(args+['--forecast-unknown-reason','No comparable completed work']),0)
+            self.assertEqual(cu.main(args+['--forecast-low','2','--forecast-high','10']),0)
+        with self.assertRaises(ValueError):
+            cu.record(self.root,{'action':'open','cu_id':'unknown','event_id':'unknown','title':'Uncertain work','goal':'Useful result','forecast_unknown_reason':'Unfamiliar work'},'owner')
         value=self.unit()['budget']
-        self.assertEqual(value['forecast_unknown_reason'],'No comparable completed work')
-        self.assertIsNone(value['forecast']);self.assertIsNone(value['limit'])
+        self.assertEqual(value['forecast']['low'],'2')
+        self.assertIsNone(value['limit'])
         with self.assertRaises(ValueError):
             self.record(event_id='conflict',forecast={'low':1,'high':2},forecast_unknown_reason='Conflict')
 
     def test_limit_does_not_create_forecast_and_zero_is_not_missing(self):
-        self.record(limit=0)
+        self.record(historical=True,limit=0)
         self.assertEqual(self.unit()['budget']['limit'],'0')
         self.assertIsNone(self.unit()['budget']['forecast'])
         self.record('budget',limit=None,reason='Remove explicit limit')
