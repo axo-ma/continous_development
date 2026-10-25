@@ -98,6 +98,8 @@ def main(argv=None) -> int:
         data = report_data(args.root, all_units=True, since=args.since, until=args.until)
         from report_memory import project_snapshots
         data.update(project_snapshots(args.root))
+        from quota_usage import build_quota_usage
+        data['quota_usage'] = build_quota_usage(args.root, data, rate_path=args.rates)
     def configure_pages(dataset):
         dataset = {**dataset, 'page_size': args.limit}
         if dataset['units'] and all(unit.get('started_at') for unit in dataset['units']):

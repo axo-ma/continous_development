@@ -388,5 +388,207 @@
         "status": "closed"
       }
     ]
+  },
+  "quota_usage": {
+    "schema_version": 1,
+    "scope": "project_observed_usage",
+    "boundary_policy": "synthetic_example",
+    "windows": [
+      {
+        "window_id": "synthetic-reset-1",
+        "starts_at": "2026-10-21T10:00:00+03:00",
+        "ends_at": "2026-10-21T15:00:00+03:00",
+        "assignments": [
+          {
+            "thread_id": "example-planner",
+            "participant_id": "example-planner",
+            "role": "hq",
+            "name": "Planner",
+            "model": "gpt-6.1-sol",
+            "cu_id": "CU-012",
+            "cu_title": "Синтетический пример проверки",
+            "result": "Синтетический результат задачи",
+            "assignment": {
+              "status": "synthetic_example",
+              "text": "Синтетическое поручение: подготовить проверку и принять результат.",
+              "provenance": []
+            },
+            "agent_result": {
+              "text": "Синтетический ответ: результат проверки сохранён.",
+              "provenance": []
+            },
+            "usage": {
+              "cached_input": 1000000,
+              "uncached_input": 10000,
+              "output": 1000
+            },
+            "coverage": "complete",
+            "request_count": 3,
+            "observed_from": "2026-10-21T10:05:00+03:00",
+            "observed_through": "2026-10-21T10:20:00+03:00",
+            "provenance": []
+          },
+          {
+            "thread_id": "example-executor",
+            "participant_id": "example-executor",
+            "role": "executor",
+            "name": "Executor",
+            "model": "gpt-6.1-sol",
+            "cu_id": "CU-012",
+            "cu_title": "Синтетический пример проверки",
+            "result": "Синтетический результат задачи",
+            "assignment": {
+              "status": "synthetic_example",
+              "text": "Синтетическое поручение: реализовать чтение тестового набора.",
+              "provenance": []
+            },
+            "agent_result": {
+              "text": "Синтетический ответ: чтение реализовано и проверено на фикстуре.",
+              "provenance": []
+            },
+            "usage": {
+              "cached_input": 500000,
+              "uncached_input": 20000,
+              "output": 2000
+            },
+            "coverage": "complete",
+            "request_count": 3,
+            "observed_from": "2026-10-21T10:05:00+03:00",
+            "observed_through": "2026-10-21T10:20:00+03:00",
+            "provenance": []
+          },
+          {
+            "thread_id": "example-reviewer",
+            "participant_id": "example-reviewer",
+            "role": "reviewer",
+            "name": "Reviewer",
+            "model": "gpt-6.1-sol",
+            "cu_id": "CU-012",
+            "cu_title": "Синтетический пример проверки",
+            "result": "Синтетический результат задачи",
+            "assignment": {
+              "status": "synthetic_example",
+              "text": "Синтетическое поручение: независимо проверить результат исполнителя.",
+              "provenance": []
+            },
+            "agent_result": {
+              "text": "Синтетический ответ: проверен один ожидаемый результат; ограничения сохранены.",
+              "provenance": []
+            },
+            "usage": {
+              "cached_input": 200000,
+              "uncached_input": 10000,
+              "output": 1000
+            },
+            "coverage": "complete",
+            "request_count": 3,
+            "observed_from": "2026-10-21T10:05:00+03:00",
+            "observed_through": "2026-10-21T10:20:00+03:00",
+            "provenance": []
+          }
+        ],
+        "actors": [
+          {
+            "thread_id": "example-planner",
+            "participant_id": "example-planner",
+            "role": "hq",
+            "name": "Planner",
+            "model": "gpt-6.1-sol",
+            "cu_id": "CU-012",
+            "cu_title": "Синтетический пример проверки",
+            "result": "Синтетический результат задачи",
+            "assignment": {
+              "status": "synthetic_example",
+              "text": "Синтетическое поручение: подготовить проверку и принять результат.",
+              "provenance": []
+            },
+            "agent_result": {
+              "text": "Синтетический ответ: результат проверки сохранён.",
+              "provenance": []
+            },
+            "usage": {
+              "cached_input": 1000000,
+              "uncached_input": 10000,
+              "output": 1000
+            },
+            "coverage": "complete",
+            "request_count": 3,
+            "observed_from": "2026-10-21T10:05:00+03:00",
+            "observed_through": "2026-10-21T10:20:00+03:00",
+            "provenance": []
+          },
+          {
+            "thread_id": "example-executor",
+            "participant_id": "example-executor",
+            "role": "executor",
+            "name": "Executor",
+            "model": "gpt-6.1-sol",
+            "cu_id": "CU-012",
+            "cu_title": "Синтетический пример проверки",
+            "result": "Синтетический результат задачи",
+            "assignment": {
+              "status": "synthetic_example",
+              "text": "Синтетическое поручение: реализовать чтение тестового набора.",
+              "provenance": []
+            },
+            "agent_result": {
+              "text": "Синтетический ответ: чтение реализовано и проверено на фикстуре.",
+              "provenance": []
+            },
+            "usage": {
+              "cached_input": 500000,
+              "uncached_input": 20000,
+              "output": 2000
+            },
+            "coverage": "complete",
+            "request_count": 3,
+            "observed_from": "2026-10-21T10:05:00+03:00",
+            "observed_through": "2026-10-21T10:20:00+03:00",
+            "provenance": []
+          },
+          {
+            "thread_id": "example-reviewer",
+            "participant_id": "example-reviewer",
+            "role": "reviewer",
+            "name": "Reviewer",
+            "model": "gpt-6.1-sol",
+            "cu_id": "CU-012",
+            "cu_title": "Синтетический пример проверки",
+            "result": "Синтетический результат задачи",
+            "assignment": {
+              "status": "synthetic_example",
+              "text": "Синтетическое поручение: независимо проверить результат исполнителя.",
+              "provenance": []
+            },
+            "agent_result": {
+              "text": "Синтетический ответ: проверен один ожидаемый результат; ограничения сохранены.",
+              "provenance": []
+            },
+            "usage": {
+              "cached_input": 200000,
+              "uncached_input": 10000,
+              "output": 1000
+            },
+            "coverage": "complete",
+            "request_count": 3,
+            "observed_from": "2026-10-21T10:05:00+03:00",
+            "observed_through": "2026-10-21T10:20:00+03:00",
+            "provenance": []
+          }
+        ],
+        "total": null,
+        "coverage": "partial",
+        "reset_evidence": [
+          {
+            "synthetic": true
+          }
+        ],
+        "diagnostics": []
+      }
+    ],
+    "unassigned": [],
+    "diagnostics": [],
+    "account_total": null,
+    "subscription_percent": null
   }
 }

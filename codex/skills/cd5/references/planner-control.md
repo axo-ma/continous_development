@@ -1,0 +1,87 @@
+# Planner execution control
+
+`scripts/planner_control.py` implements a local deterministic supervisor. It does
+not call a model to check time, quota or activity. The host integration is an
+explicit adapter, not an hourly message or an agent automation. Installing CD5
+does not enable unattended work or install a startup task.
+
+Two operational files live beside CHECKPOINT (they are not scientific memory):
+
+- `PLANNER_STATE.json`: atomic current state, owner, pending action, authorization,
+  resume time, activity lease and recovery count.
+- `PLANNER_EVENTS.jsonl`: fsynced append-only transition journal with timestamps,
+  reason, source and the resulting state snapshot. Lease refreshes are explicit;
+  ordinary watchdog checks do not append events.
+
+States are STOP, RUNNING, READY, WAIT_QUOTA, WAIT_WORKER, WAIT_USER, COMPLETE,
+DISPATCHING and BLOCKED. STOP/WAIT_USER/COMPLETE never wake automatically. A user
+STOP in CHECKPOINT overrides operational state. Neither this state file nor an
+adapter grants scientific authorization or replaces the frozen-protocol gate.
+
+## Commands
+
+Use the installed Python and CD5 paths for your machine:
+
+```text
+python <skill>/scripts/planner_control.py --root <project> init --owner-thread <actual-id>
+python <skill>/scripts/planner_control.py --root <project> status
+python <skill>/scripts/planner_control.py --root <project> set --state READY --reason "User authorized continuation" --source user --authorized --next-action "Review saved result"
+python <skill>/scripts/planner_control.py --root <project> set --state WAIT_QUOTA --reason "Quota admission closed" --authorized --next-action "Review saved result" --reset-at <observed-unix-reset>
+python <skill>/scripts/planner_control.py --root <project> heartbeat
+python <skill>/scripts/planner_control.py --root <project> tick --adapter <adapter-argv.json>
+python <skill>/scripts/planner_control.py --root <project> watch --adapter <adapter-argv.json>
+```
+
+Initialization refuses existing files and starts STOP. A reset gets a 60-second
+safety margin; no imaginary recurring five-hour windows are generated. Planner
+records RUNNING and refreshes its lease at bounded work boundaries (default lease
+15 minutes); it records a waiting/completed state before ending. A live native
+active status always blocks recovery even when the lease expires. The supervisor
+may recover a crashed idle Planner once; another crash becomes BLOCKED. A normal
+lease refresh does not reset the recovery count. Only explicit user reconciliation
+clears it. After reboot, restart the same `watch` command through a separately
+authorized OS startup service. No active agent is needed while waiting.
+
+## Host adapter contract
+
+The adapter configuration is a JSON argv array, e.g. a synthetic example
+`["python", "host_adapter.py"]`. Execution uses no shell, a 30-second timeout and
+stdin/stdout JSON. The adapter must use a supported host API; scraped journal
+timestamps, cached quota and a PID alone are not authoritative idle checks.
+
+For `operation=probe`, with `root` and `owner_thread_id`, return:
+
+```json
+{"observed_at": 1800000000, "owner_thread_id": "synthetic-owner", "planner_status": "idle", "workers_idle": true, "quota": {"ordinary_allowed": true, "used_percent": 20, "window_minutes": 300}}
+```
+
+This example is synthetic. Observation must be at most 60 seconds old, owner must
+match, all project workers must be proven idle, ordinary usage must be allowed,
+and the 300-minute window must be below 90%. Unknown fields block admission.
+The probe must perform no model calls.
+
+For `operation=wake`, the request also contains `dispatch_id`, `expected_idle`,
+`next_action` and a bounded recovery `message`. The host must atomically recheck
+owner/idle/STOP and deduplicate the dispatch ID before sending exactly one message
+to the existing owner. It returns `{"accepted":true,"dispatch_id":"<same-id>"}`
+only after acceptance. An adapter that cannot guarantee this must reject the wake.
+
+**There is no bundled Codex desktop adapter:** tool access inside an agent turn
+is not an unattended host API. Without a suitable adapter the controller remains
+fail-closed and reports `host adapter not configured`. Do not claim unattended
+desktop continuation is active merely because the supervisor is installed.
+
+## Crash and ambiguity handling
+
+An OS-backed lock serializes ticks and state writers, including multiple watchdog
+processes. The durable DISPATCHING transition precedes sending. Delivery timeout
+or process death in this interval never leads to a blind resend: DISPATCHING
+requires inspection and explicit user reconciliation. Thus ambiguous delivery
+favors stopping over duplicate work; exactly-once delivery across a network crash
+requires host idempotency and cannot be promised by a local JSON file alone.
+
+Journal is written before atomic state replacement. Missing/corrupt files or a
+journal/state mismatch fail closed; preserve both files and reconcile the final
+journal snapshot after checking host activity. Do not delete a lock or fabricate
+RUNNING to recover. A stopped watchdog emits an error to stderr for its OS service
+to surface; this release does not provide an external notification channel.

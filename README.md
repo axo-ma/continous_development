@@ -71,4 +71,21 @@ python codex/examples/build_report.py
 
 Обзор отчёта помещается по ширине панели: короткие номера строк, компактные даты и план-факт. Полный CU ID, причины неизвестных оценок и измерения участников открываются по нажатию. На узком экране строки перестраиваются без боковой прокрутки.
 
-Если итог команды неизвестен, но подтверждён расход единственного штаба, компактная строка показывает **«Штаб … WU»** и отдельно **«Итог команды —»**. Измеренную часть незавершённого хода обозначает ≥; она не выдаётся за итог команды. Сквозной тест проверяет реальные CLI-команды открытия/завершения двух CU, запись разных числовых планов, чтение native-подобного журнала и формирование отчёта.
+Если итог команды неизвестен, но подтверждён расход единственного штаба, компактная строка показывает **«Actual … WU»** с уточнением **«Planner only»**. Измеренную часть незавершённого хода обозначает ≥; она не выдаётся за итог команды. Сквозной тест проверяет реальные CLI-команды открытия/завершения двух CU, запись разных числовых планов, чтение native-подобного журнала и формирование отчёта.
+
+### Расход по пятичасовым окнам
+
+В отчёте есть два view: **По задачам · CU** и **По 5 часам**. Второй использует сохранённые метки сброса квоты Codex. Фильтр ролей позволяет посмотреть Planner, Executor или Reviewer; раскрытие окна показывает точные поручения, сохранённые ответы, токены и источники. Значения отдельных агентов не складываются в неподтверждённый итог команды. Отдельно показаны измерения без подтверждённого окна и пробелы учёта. Это наблюдаемый расход проекта, а не весь аккаунт и не процент лимита подписки. Синтетический HTML-пример демонстрирует оба view.
+# Planner supervision without hourly model calls
+
+CD5 now includes `planner_control.py`: atomic `PLANNER_STATE.json`, an append-only
+`PLANNER_EVENTS.jsonl`, reset-aware waiting, native activity/quota admission,
+single crash recovery and duplicate-dispatch protection. Checks use ordinary
+Python, not model turns. Installation does not activate background work.
+
+Unattended wakeup requires a host adapter capable of authoritative activity/quota
+checks and idempotent delivery; a Codex Desktop adapter is not bundled. Without
+one, the supervisor fails closed. See
+[Planner control](codex/skills/cd5/references/planner-control.md) for commands,
+the adapter contract and recovery limits.
+
