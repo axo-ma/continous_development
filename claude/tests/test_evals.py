@@ -113,7 +113,7 @@ class EvalHarnessTests(unittest.TestCase):
 
     def test_explain_request_keeps_question_open(self):
         self.assertTrue(self.build('S08', {'text': 'При 0.7 меньше ложных срабатываний.'})['passed'])
-        closed = self.build('S08', act=lambda p, m: m._run('project_memory.py', '--root', p, 'archive-attention',
+        closed = self.build('S08', act=lambda p, m: m._run('project_memory.py', '--root', p, 'close-attention',
                                                                '--id', 'q-threshold', '--role', 'hq'))
         self.assertFalse(closed['passed'])
 

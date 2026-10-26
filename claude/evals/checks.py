@@ -97,7 +97,10 @@ def checkpoint_field_unchanged(dotted):
 
 def attention_open(item_id):
     def check(ctx):
-        status = [r.get('status') for r in ctx.records('ATTENTION.jsonl') if r.get('id') == item_id]
+        rows = ctx.records('ATTENTION.jsonl')
+        status = [r.get('status') for r in rows if r.get('id') == item_id]
+        if any(r.get('kind') == 'attention_close' and r.get('ref') == item_id for r in rows):
+            status.append('closed')  # append-only close row
         return status[-1:] == ['open'], 'статус %s: %s' % (item_id, status[-1] if status else 'нет записи')
     check.__doc__ = 'вопрос %s остался открытым' % item_id
     return check

@@ -14,7 +14,7 @@ python <skill>/scripts/project_memory.py --root <project> query knowledge "сл�
 python <skill>/scripts/project_memory.py --root <project> select evidence --id run-07 [--full]
 python <skill>/scripts/project_memory.py --root <project> append evidence --record-file <rec.json> --role hq
 python <skill>/scripts/project_memory.py --root <project> write-checkpoint --input-file <cp.json> --role hq
-python <skill>/scripts/project_memory.py --root <project> archive-attention --id <id> --role hq
+python <skill>/scripts/project_memory.py --root <project> close-attention --id <id> --role hq --decision "<ответ пользователя>"
 python <skill>/scripts/project_memory.py --root <project> progress [--milestone MS-01]
 python <skill>/scripts/attention.py --root <project> list | show --id <id> | render --output <file.html>
 python <skill>/scripts/cu_archive.py --root <project> budget

@@ -195,8 +195,13 @@ def validate(root):
   if x.get('schema_version')!=1 or not isinstance(x.get('kind'),str) or not x['kind']: raise MemoryError('knowledge entries require schema_version 1 and kind')
  for x in _jsonl(_path(base,'attention')):
   if x.get('schema_version')!=1: raise MemoryError('attention entries require schema_version 1')
- for row in _jsonl(_path(base,'attention')):
+ attention_rows=_jsonl(_path(base,'attention')); items={r['id'] for r in attention_rows if r.get('kind')=='attention_item'}; closed=set()
+ for row in attention_rows:
   if row.get('kind')=='attention_archive_ref': _archived_attention(base,row)
+  elif row.get('kind')=='attention_close':
+   if row.get('ref') not in items: raise MemoryError(f"attention close {row['id']} refers to unknown item {row.get('ref')}")
+   if row['ref'] in closed: raise MemoryError(f"attention item {row['ref']} closed twice")
+   closed.add(row['ref'])
   elif row.get('kind')!='attention_item': raise MemoryError(f"unsupported attention kind: {row.get('kind')}")
  cp=_validate_checkpoint(json.loads(_path(base,'checkpoint').read_text(encoding='utf-8-sig')), base)
  evidence_ids={x['id'] for x in evidence_history(base)}
@@ -210,6 +215,7 @@ def query(root,kind,terms,limit=20,include_closed=False):
  base=_base(root)
  if kind not in ('evidence','knowledge','attention'): raise MemoryError('query supports evidence, knowledge, attention')
  words=str(terms).casefold().split(); rows=_jsonl(_path(base,kind))
+ if kind=='attention': rows=_attention_view(rows)
  if kind=='attention' and not include_closed: rows=[r for r in rows if r.get('status')!='closed']
  hits=[]
  for row in rows:
@@ -341,7 +347,9 @@ def _archived_attention(base,tombstone):
  return record
 
 def select(root,kind,ids,full=False,include_closed=False):
- base=_base(root); ids=[_safe_id(i) for i in ids]; all_rows=_jsonl(_path(base,kind)); all_by={r['id']:r for r in all_rows}
+ base=_base(root); ids=[_safe_id(i) for i in ids]; all_rows=_jsonl(_path(base,kind))
+ if kind=='attention': all_rows=_attention_view(all_rows)
+ all_by={r['id']:r for r in all_rows}
  if kind=='evidence' and any(i not in all_by for i in ids):
   all_by={r['id']:r for r in evidence_history(base)}
  by=all_by
@@ -356,9 +364,23 @@ def select(root,kind,ids,full=False,include_closed=False):
   result.append(row if full else {k:v for k,v in row.items() if k not in ('payload','text','event')})
  return result
 
+def _attention_view(rows):
+ """ATTENTION is append-only: an attention_close row closes the item it refers to.
+ Returns the items with their current status; close rows themselves are hidden."""
+ closes={r.get('ref'):r for r in rows if r.get('kind')=='attention_close'}
+ out=[]
+ for row in rows:
+  if row.get('kind')=='attention_close': continue
+  close=closes.get(row.get('id'))
+  if close:
+   row=dict(row); row.update({'status':'closed','closed_at':close.get('closed_at'),'closed_by':close.get('closed_by'),'close_id':close['id']})
+   if close.get('decision') is not None: row['decision']=close['decision']
+  out.append(row)
+ return out
+
 def pending_attention(root):
  """Return only current actionable attention records from the canonical register."""
- base=_base(root); rows=_jsonl(_path(base,'attention')); out=[]
+ base=_base(root); rows=_attention_view(_jsonl(_path(base,'attention'))); out=[]
  for row in rows:
   if row.get('kind')!='attention_item' or row.get('status') in {'closed','nonblocking'}: continue
   payload=row.get('payload') if isinstance(row.get('payload'),dict) else row.get('event')
@@ -441,6 +463,7 @@ def update_attention(root,event_id,mutator,role='hq'):
   for row in rows:
    if row['id']==event_id: found=row; break
   if found is None: raise MemoryError('attention ID not found')
+  if any(r.get('kind')=='attention_close' and r.get('ref')==event_id for r in rows): raise MemoryError('closed attention item cannot be updated')
   if found.get('kind')=='attention_archive_ref' or found.get('status')=='closed': raise MemoryError('closed attention item cannot be updated')
   updated=mutator(dict(found))
   if updated.get('id')!=event_id: raise MemoryError('attention ID is immutable')
@@ -459,39 +482,27 @@ def record_attention_click(root,event_id):
   return row
  return update_attention(root,event_id,change,role='hq')
 
-def archive_attention(root,event_id,role):
+def close_attention(root,event_id,role,decision=None):
+ """Close a question by appending an attention_close row; the item row is never rewritten."""
  base=_base(root); _assert_no_migration(base); event_id=_safe_id(event_id)
- if role!='hq': raise MemoryError('only HQ may archive attention items')
+ if role!='hq': raise MemoryError('only HQ may close attention items')
+ close_id=_safe_id(event_id+'.closed')
  p=_path(base,'attention'); lock=_lock(p)
  try:
   _assert_no_migration(base)
-  rows=_jsonl(p); found=None
-  for row in rows:
-   if row['id']==event_id: found=row; break
+  rows=_jsonl(p); found=next((r for r in _attention_view(rows) if r['id']==event_id),None)
   if found is None: raise MemoryError('attention ID not found')
-  if found.get('kind')=='attention_archive_ref': return _archived_attention(base,found)
-  if found.get('status')=='closed': raise MemoryError('closed row requires migration to an archive reference')
-  closed=dict(found); closed.update({'status':'closed','closed_by':'hq','closed_at':datetime.datetime.now(datetime.timezone.utc).isoformat()})
-  rel=_attention_archive_rel(event_id, base)
-  archive=(base/rel).resolve()
-  if not archive.is_relative_to(base): raise MemoryError('archive path escape')
-  archive.parent.mkdir(parents=True,exist_ok=True)
-  digest=hashlib.sha256(json.dumps(closed,ensure_ascii=False,sort_keys=True,separators=(',',':')).encode()).hexdigest()
-  record={'schema_version':1,'id':event_id,'kind':'closed_attention_archive','record':closed,'record_sha256':digest}
-  data=(json.dumps(record,ensure_ascii=False,indent=2)+'\n').encode()
-  if archive.exists():
-   saved=json.loads(archive.read_text(encoding='utf-8')); old=saved.get('record',{})
-   compare_old=dict(old); compare_new=dict(closed); compare_old.pop('closed_at',None); compare_new.pop('closed_at',None)
-   if saved.get('id')!=event_id or compare_old!=compare_new: raise MemoryError('archive path exists with different content; refusing overwrite')
-   closed=old; digest=saved['record_sha256']
-  else:
-   fd=os.open(archive,os.O_CREAT|os.O_EXCL|os.O_WRONLY,0o600)
-   with os.fdopen(fd,'wb') as f: f.write(data); f.flush(); os.fsync(f.fileno())
-  tombstone={'schema_version':1,'id':event_id,'kind':'attention_archive_ref','status':'closed','archive_path':rel,'record_sha256':digest,'closed_at':closed['closed_at']}
-  rows=[tombstone if row['id']==event_id else row for row in rows]
-  _atomic(p,(''.join(json.dumps(x,ensure_ascii=False,separators=(',',':'))+'\n' for x in rows)).encode())
-  return closed
+  if found.get('status')=='closed' or found.get('kind')!='attention_item': raise MemoryError('attention item is already closed')
+  row={'schema_version':1,'id':close_id,'kind':'attention_close','ref':event_id,'closed_by':'hq',
+       'closed_at':datetime.datetime.now(datetime.timezone.utc).isoformat()}
+  if decision: row['decision']=decision
+  with p.open('ab') as f: f.write((json.dumps(row,ensure_ascii=False,separators=(',',':'))+'\n').encode('utf-8')); f.flush(); os.fsync(f.fileno())
+  return row
  finally: lock.unlink(missing_ok=True)
+
+def archive_attention(root,event_id,role):
+ """Former name of close_attention, kept for existing instructions."""
+ return close_attention(root,event_id,role)
 
 def main(argv=None):
  ap=argparse.ArgumentParser(description=__doc__); ap.add_argument('--root',required=True); sub=ap.add_subparsers(dest='cmd',required=True)
@@ -501,11 +512,12 @@ def main(argv=None):
  apn=sub.add_parser('append'); apn.add_argument('kind',choices=['evidence','knowledge','attention']); apn.add_argument('--record-file',required=True); apn.add_argument('--role',required=True)
  wc=sub.add_parser('write-checkpoint'); wc.add_argument('--input-file',required=True); wc.add_argument('--role',required=True)
  ar=sub.add_parser('archive-attention'); ar.add_argument('--id',required=True); ar.add_argument('--role',required=True)
+ cl=sub.add_parser('close-attention',help='close a question by appending a close row'); cl.add_argument('--id',required=True); cl.add_argument('--role',required=True); cl.add_argument('--decision',help="the user's answer, in their words")
  pr=sub.add_parser('progress'); pr.add_argument('--milestone',help='show one stable milestone ID'); pr.add_argument('--limit',type=int,default=10)
  sub.add_parser('pending-attention')
  a=ap.parse_args(argv)
  try:
-  out=validate(a.root) if a.cmd=='validate' else query(a.root,a.kind,a.terms,a.limit,a.include_closed) if a.cmd=='query' else select(a.root,a.kind,a.id,a.full,a.include_closed) if a.cmd=='select' else pending_attention(a.root) if a.cmd=='pending-attention' else progress_view(a.root,a.milestone,a.limit) if a.cmd=='progress' else append(a.root,a.kind,json.loads(Path(a.record_file).read_text(encoding='utf-8')),a.role) if a.cmd=='append' else write_checkpoint(a.root,json.loads(Path(a.input_file).read_text(encoding='utf-8')),a.role) if a.cmd=='write-checkpoint' else archive_attention(a.root,a.id,a.role)
+  out=validate(a.root) if a.cmd=='validate' else query(a.root,a.kind,a.terms,a.limit,a.include_closed) if a.cmd=='query' else select(a.root,a.kind,a.id,a.full,a.include_closed) if a.cmd=='select' else pending_attention(a.root) if a.cmd=='pending-attention' else progress_view(a.root,a.milestone,a.limit) if a.cmd=='progress' else append(a.root,a.kind,json.loads(Path(a.record_file).read_text(encoding='utf-8')),a.role) if a.cmd=='append' else write_checkpoint(a.root,json.loads(Path(a.input_file).read_text(encoding='utf-8')),a.role) if a.cmd=='write-checkpoint' else close_attention(a.root,a.id,a.role,a.decision) if a.cmd=='close-attention' else archive_attention(a.root,a.id,a.role)
   print(json.dumps(out,ensure_ascii=False,indent=2)); return 0
  except (MemoryError,OSError,json.JSONDecodeError) as e: ap.error(str(e)); return 2
 if __name__=='__main__': raise SystemExit(main())
