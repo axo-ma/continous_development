@@ -3,6 +3,8 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+import subprocess
+import sys
 from unittest.mock import patch
 
 from tools import planner_control as pc
@@ -44,6 +46,49 @@ class PlannerControlTests(unittest.TestCase):
         self.assertEqual(self.decision(state='RUNNING', heartbeat_at=900), 'hold')
         self.assertEqual(self.decision(state='RUNNING', heartbeat_at=1), 'wake')
         self.assertEqual(self.decision(state='RUNNING', heartbeat_at=1, recovery_attempts=1), 'block')
+
+    def test_real_process_crash_releases_lock_without_resending(self):
+        # Real child process exits while holding the OS lock, not a mocked reboot.
+        # A fresh process must inspect durable state without contacting an adapter.
+        child = '''
+import os, sys
+from pathlib import Path
+from tools import planner_control as pc
+directory = Path(sys.argv[1]) / 'coordination/cd5'
+with pc.locked(directory):
+    old = pc.load(directory)
+    if sys.argv[2] == 'journal_only':
+        pc.atomic = lambda *args: os._exit(23)
+    pc.save(directory, old, 'DISPATCHING', 'synthetic reserved send', 'watchdog',
+            dispatch_id='synthetic-stable-id')
+    os._exit(23)
+'''
+        probe = '''
+import json, sys
+from pathlib import Path
+from tools import planner_control as pc
+try:
+    result = pc.tick(Path(sys.argv[1]), ['nonexistent-adapter-must-not-run'])
+except ValueError:
+    result = {'action': 'blocked_by_journal_mismatch'}
+print(json.dumps(result))
+'''
+        for stage in ('committed', 'journal_only'):
+            with self.subTest(stage=stage), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                directory = self.project(root)
+                crashed = subprocess.run([sys.executable, '-c', child, str(root), stage],
+                                         capture_output=True, text=True, timeout=15)
+                self.assertEqual(crashed.returncode, 23, crashed.stderr)
+                before = {name: (directory / name).read_bytes() for name in
+                          ('PLANNER_STATE.json', 'PLANNER_EVENTS.jsonl')}
+                restarted = subprocess.run([sys.executable, '-c', probe, str(root)],
+                                           capture_output=True, text=True, timeout=15)
+                self.assertEqual(restarted.returncode, 0, restarted.stderr)
+                result = json.loads(restarted.stdout)
+                expected = 'hold' if stage == 'committed' else 'blocked_by_journal_mismatch'
+                self.assertEqual(result['action'], expected)
+                self.assertEqual(before, {name: (directory / name).read_bytes() for name in before})
 
     def test_unknown_host_wake_capability_never_dispatches(self):
         for capability in (False, None, 'true', 1):
