@@ -297,7 +297,7 @@ assert.equal(exact.children.length,0);
         self.assertEqual(heading.count('<th>') + heading.count('<th '), 7)
         self.assertIn('План / Факт<br>WU</th>', heading)
         self.assertNotIn('Вход из кэша', heading)
-        self.assertIn("costCell(data.work_units?.total,'td','Actual ')", template)
+        self.assertIn("costCell(data.work_units?.total,'td','Факт ')", template)
         self.assertNotIn('const sums=', template)
 
     @unittest.skipUnless(shutil.which('node'), 'Node is optional for budget cell verification')

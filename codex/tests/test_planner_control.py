@@ -14,7 +14,7 @@ class PlannerControlTests(unittest.TestCase):
                   'next_action': 'review saved result', 'authorized': True}
         self.cp = {'owner': {'thread_id': 'synthetic'}, 'user_stop': {'active': False},
                    'goal_status': 'open'}
-        self.obs = {'observed_at': 1000, 'owner_thread_id': 'synthetic',
+        self.obs = {'observed_at': 1000, 'owner_thread_id': 'synthetic', 'wake_supported': True,
                     'planner_status': 'idle', 'workers_idle': True,
                     'quota': {'ordinary_allowed': True, 'used_percent': 30, 'window_minutes': 300}}
 
@@ -44,6 +44,13 @@ class PlannerControlTests(unittest.TestCase):
         self.assertEqual(self.decision(state='RUNNING', heartbeat_at=900), 'hold')
         self.assertEqual(self.decision(state='RUNNING', heartbeat_at=1), 'wake')
         self.assertEqual(self.decision(state='RUNNING', heartbeat_at=1, recovery_attempts=1), 'block')
+
+    def test_unknown_host_wake_capability_never_dispatches(self):
+        for capability in (False, None, 'true', 1):
+            self.obs['wake_supported'] = capability
+            self.assertEqual(self.decision(), 'hold')
+        self.obs.pop('wake_supported')
+        self.assertEqual(self.decision(), 'hold')
 
     def project(self, root, state='READY', **extra):
         directory = root / 'coordination/cd5'

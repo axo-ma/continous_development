@@ -175,7 +175,7 @@ def decide(state, checkpoint, observation, now):
         return 'hold', 'stale or unknown host observation'
     if observation.get('owner_thread_id') != state.get('owner_thread_id'):
         return 'hold', 'probe owner mismatch'
-    if observation.get('wake_supported') is False:
+    if observation.get('wake_supported') is not True:
         return 'hold', observation.get('reason', 'host does not support safe wake')
     if observation.get('planner_status') != 'idle' or observation.get('workers_idle') is not True:
         return 'hold', 'native activity active or unknown'

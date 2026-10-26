@@ -137,7 +137,7 @@ const scope=element('p',data.scope?.usage_label||'Расход выбранны�
 if(data.scope?.label)scope.prepend(document.createTextNode(`${data.scope.label} · `));
 if(data.covers_from)scope.append(document.createTextNode(` · Данные с ${time(data.covers_from)} МСК`));
 root.querySelector('header').append(element('p',data.scope?.label||'За всё время','scope-label'));
-const totalRow=element('tr'),totalLabel=element('th',`Итого по всей выбранной истории · ${data.units.length} CU`);totalLabel.colSpan=6;totalRow.append(totalLabel,costCell(data.work_units?.total,'td','Actual '));const foot=element('tfoot');foot.append(totalRow);root.querySelector('table[aria-label="Control Units"]').append(foot);
+const totalRow=element('tr'),totalLabel=element('th',`Итого по всей выбранной истории · ${data.units.length} CU`);totalLabel.colSpan=6;totalRow.append(totalLabel,costCell(data.work_units?.total,'td','Факт '));const foot=element('tfoot');foot.append(totalRow);root.querySelector('table[aria-label="Control Units"]').append(foot);
 renderMethod();root.querySelector('main > details').append(scope,timingNote);
 const pairs=[...byId('units').children];let page=0;const pageSize=Number.isInteger(data.page_size)&&data.page_size>0?data.page_size:10;
 const pager=element('nav');pager.setAttribute('aria-label','Страницы Control Units');pager.style.marginTop='12px';const previous=element('button','← Новее','team'),next=element('button','Раньше →','team'),pageLabel=element('span');pageLabel.setAttribute('aria-live','polite');pageLabel.style.margin='0 12px';previous.type=next.type='button';pager.append(previous,pageLabel,next);root.querySelector('table[aria-label="Control Units"]').parentElement.before(pager);pager.style.marginBottom='12px';

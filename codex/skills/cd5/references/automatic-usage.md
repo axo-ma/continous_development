@@ -1,6 +1,6 @@
 # Automatic factual usage
 
-Use automatic usage for ordinary CU accounting. No model call, reporting agent, background wakeup or per-turn task record is required. The owner still chooses meaningful CU boundaries; code cannot infer the user's intended work granularity from a transcript. The normal begin command requires a prospective forecast range or an explicit short reason why a defensible forecast is unavailable; see [WU budgets](wu-budgets.md). It requires no WU limit.
+Use automatic usage for ordinary CU accounting. No model call, reporting agent, background wakeup or per-turn task record is required. The owner still chooses meaningful CU boundaries; code cannot infer the user's intended work granularity from a transcript. The normal begin command requires a numeric prospective whole-team forecast range; uncertainty needs a wider justified range, never a reason-only substitute; see [WU budgets](wu-budgets.md). It requires no WU limit.
 
 ## Owner actions
 
