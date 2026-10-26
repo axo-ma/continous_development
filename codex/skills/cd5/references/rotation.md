@@ -1,5 +1,10 @@
 # CD5 owner rotation
 
+Native Goal is chat-scoped. Read [native Goal](native-goal.md) before transferring
+a continuously running owner: confirm safe suspension of the previous owner's
+native continuation and require the successor to verify its own explicitly
+authorized Goal. Never assume that a prompt or copied CHECKPOINT transfers it.
+
 Use weighted stages to bound continuity when the project has enabled this policy. The default rotation limit is three weighted stages: ordinary stage = 1, stage with a return, a measured log of at least 8,000 characters, or a dispute = 2, and more than two returns = 3. Stage IDs are stable and idempotent. A project may lower the limit to two after confirmed premature compaction; do not raise it above three without evidence.
 
 Rotation may be requested at the next safe boundary by the weighted limit, first confirmed role violation, explicit manual refresh, or supplied context-use telemetry of at least 65%. Never infer context use from transcript length. A trigger does not interrupt an accepted active run or worker. Wait for known idle status; unknown activity or conflicting counters requires inspection. Preserve STOP, quota gate, protocol budgets, pending work, and owner-scoped counters through handoff. Reset counters only after the successor confirms acceptance.

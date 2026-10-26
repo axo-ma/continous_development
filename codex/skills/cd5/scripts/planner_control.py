@@ -156,6 +156,8 @@ def decide(state, checkpoint, observation, now):
         return 'hold', 'user STOP or unknown STOP'
     if checkpoint.get('cd5', {}).get('enabled') is False:
         return 'hold', 'CD5 disabled'
+    if checkpoint.get('native_goal', {}).get('driver') == 'native':
+        return 'hold', 'native_goal_drives_continuation'
     if checkpoint.get('owner', {}).get('thread_id') != state.get('owner_thread_id'):
         return 'hold', 'owner changed'
     if state.get('checkpoint_sha256') and state['checkpoint_sha256'] != checkpoint_hash(checkpoint):

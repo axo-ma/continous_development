@@ -1,5 +1,20 @@
 # CD5 lifecycle
 
+For user-authorized continuous HQ launches, use [native Goal](native-goal.md) as
+the preferred ordinary continuation driver. At admission the owner reads native
+state, creates a missing explicitly requested Goal and reads it back; identical
+active state is reused without resetting consumption. Record the observed state
+and actual owner in CHECKPOINT.native_goal. Installation, CD5 enabled and a text
+objective do not establish native Goal existence. When native drives continuation,
+do not create parallel periodic messages or external wakes.
+
+Before a quota/STOP/human-input exit, handle native Goal under its actual tool
+contract and explicit user pause authority, as detailed in native-goal.md. Leaving
+an active Goal to repeatedly check blocked quota is not an acceptable wait mode.
+Do not mislabel a quota stop as completion, silently resume a paused Goal or use
+an alternate API to evade lifecycle restrictions. Recovery after reset/restart
+must remain unverified until independently observed.
+
 For projects opted into [Planner control](planner-control.md), every HQ checkpoint
 must include `planner_control` with explicit `state`, `reason` and `authorized`.
 Use RUNNING at admission/bounded work boundaries, WAIT_QUOTA with observed

@@ -1,5 +1,12 @@
 # Portable command-line tools
 
+For native Goal startup and lifecycle, follow [native-goal.md](native-goal.md).
+`native_goal.py --root <project> --caller-thread <owner> --objective-file <file>
+--observations <json>` is a read-only admission planner. It uses fresh native,
+quota and participant observations plus explicit authorization; it never changes
+a Goal or treats a local plan as proof of native state. Execute requested native
+actions only through the owner's actual host tools, then verify with a native read.
+
 `control_units.py begin` accepts optional `--forecast-low`, `--forecast-high`, `--confidence` and `--limit-wu`. `control_units.py budget` revises explicit values with a stable event ID and short reason; see [WU budgets](wu-budgets.md). Forecasts, limits and actuals remain separate; missing values are not zero.
 
 For normal CU usage collection, read [automatic usage](automatic-usage.md). `control_units.py begin/finish` capture the actual caller turn; `cu_auto_telemetry.py` derives factual usage when the report is read. Manual mapping files remain exceptional. No LLM calls or schedules are created by these scripts.

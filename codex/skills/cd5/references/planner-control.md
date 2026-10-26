@@ -1,5 +1,11 @@
 # Planner execution control
 
+For ordinary continuation, prefer the application's [native Goal](native-goal.md)
+after user authorization. This external supervisor is an optional diagnostic or
+recovery component, not the default replacement for native continuation. If
+CHECKPOINT.native_goal.driver is `native`, it never dispatches an external wake;
+even a missing/paused native Goal requires reconciliation, not a silent fallback.
+
 `scripts/planner_control.py` implements a local deterministic supervisor. It does
 not call a model to check time, quota or activity. The host integration is an
 explicit adapter, not an hourly message or an agent automation. Installing CD5

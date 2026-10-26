@@ -7,10 +7,14 @@ metadata:
 
 # CD5
 
-For deterministic execution supervision and quota-aware wakeups without periodic
-model invocations, read [Planner control](references/planner-control.md). Keep
-PLANNER_STATE.json and PLANNER_EVENTS.jsonl as operational records; installation
-alone never enables a schedule or supplies a desktop host adapter.
+For ordinary continuous HQ work, first read [Native Goal](references/native-goal.md).
+Use the application's actual Goal when explicitly authorized by the user,
+including a standing instruction to set a Goal when launching their HQ. OUTLINE
+and CHECKPOINT are not native Goal state. The owner reads, creates only if absent,
+and verifies its own Goal; preserve existing objectives, usage and lifecycle.
+Do not run an external wakeup alongside native continuation. For optional
+diagnostics/recovery read [Planner control](references/planner-control.md).
+Installation never creates a Goal, starts work or enables a schedule.
 
 For ordinary CU accounting, use [automatic usage](references/automatic-usage.md): capture short begin/finish marks and let code derive factual journal usage at report time. Do not routinely prepare manual telemetry mappings or generate separate accounting narratives.
 
