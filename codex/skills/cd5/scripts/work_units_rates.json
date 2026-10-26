@@ -4,10 +4,12 @@
   "name": "Work Units",
   "basis_usd": "0.10",
   "rate_date": "2026-10-21",
+  "model_additions": {"gpt-6.1-terra": {"verified_at": "2026-10-26", "note": "Additive tariff only; existing coefficients and forecast comparison basis unchanged."}},
   "basis": "API Standard · короткий контекст · базовая оценка",
   "source_url": "https://developers.openai.com/api/docs/pricing",
   "rates_per_million": {
     "gpt-6-luna": {"uncached_input": "1", "cached_input": "0.1", "output": "5"},
+    "gpt-6.1-terra": {"uncached_input": "10", "cached_input": "0.5", "output": "50"},
     "gpt-6.1-sol": {"uncached_input": "20", "cached_input": "1", "output": "100"},
     "gpt-6-sol": {"uncached_input": "20", "cached_input": "2", "output": "100"},
     "gpt-6-astra": {"uncached_input": "100", "cached_input": "10", "output": "500"}

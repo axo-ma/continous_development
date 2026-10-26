@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "unit": "WU",
+  "name": "Work Units",
+  "basis_usd": "0.10",
+  "rate_date": "2026-10-21",
+  "basis": "API Standard · короткий контекст · базовая оценка",
+  "source_url": "https://developers.openai.com/api/docs/pricing",
+  "rates_per_million": {
+    "gpt-6-luna": {"uncached_input": "1", "cached_input": "0.1", "output": "5"},
+    "gpt-6.1-sol": {"uncached_input": "20", "cached_input": "1", "output": "100"},
+    "gpt-6-sol": {"uncached_input": "20", "cached_input": "2", "output": "100"},
+    "gpt-6-astra": {"uncached_input": "100", "cached_input": "10", "output": "500"}
+  },
+  "excluded_adjustments": ["fast/ultrafast", "long_context", "cache_writes", "paid_tools", "regional_processing"],
+  "legacy_rate_note": "gpt-6-sol cached=2 WU is the explicitly preserved legacy Sol 6 rate, not the Sol 6.1 rate.",
+  "subscription_note": "Нормализованная стоимость API, не списание или ёмкость подписки."
+}

@@ -9,11 +9,14 @@ The agreed denomination is **1 WU = $0.10**, anchored to the API Standard price 
 | Model | Uncached input | Cached input | Output, including reasoning |
 | --- | ---: | ---: | ---: |
 | GPT-6 Luna | 1 WU | 0.1 WU | 5 WU |
+| GPT-6.1 Terra | 10 WU | 0.5 WU | 50 WU |
 | GPT-6.1 Sol | 20 WU | 1 WU | 100 WU |
 | GPT-6 Sol, preserved legacy snapshot | 20 WU | 2 WU | 100 WU |
 | GPT-6 Astra | 100 WU | 10 WU | 500 WU |
 
 Rates are per million tokens. The legacy Sol 6 cached coefficient must not be applied to Sol 6.1. Model matching is explicit; an unknown model is not silently mapped to another tariff.
+
+The additive tariff verified on 2026-10-26 adds Terra 6.1 at API Standard prices of $1 uncached input, $0.05 cached input and $5 output per million tokens. Its verification date is recorded in model_additions; the original rate_date remains the existing forecast comparison basis. Existing model coefficients and the $0.10 WU denomination are unchanged. Terra costs 10 times Luna for uncached input/output and 5 times for cached input at equal token counts; it costs half of Sol 6.1 in all three categories. This is an API price comparison, not a subscription quota multiplier or permission to select a model. The pre-addition snapshot is preserved as work_units_rates.2026-10-21.json.
 
 Cost is computed separately for each participant from the three observed token counts, then summed only when accounting scope and coverage permit it. Effort remains visible metadata and has no separate price multiplier. Reasoning is already part of output and is never added again. Decimal arithmetic retains full precision; the UI normally rounds to two decimal places. Selection totals use unrounded participant costs, not the sum of displayed rounded values. Reopening a report recalculates derived values from raw tokens rather than trusting previously embedded WU.
 
