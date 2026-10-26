@@ -74,7 +74,7 @@ def project_snapshots(root):
         ('outline', 'OUTLINE.md'), ('checkpoint', 'CHECKPOINT.json'),
         ('knowledge', 'KNOWLEDGE.jsonl'), ('attention', 'ATTENTION.jsonl'))}
     cp = data['checkpoint'].get('raw', {})
-    data['checkpoint']['state'] = {**cp, 'milestone': cp.get('current_milestone', cp.get('milestone')),
+    data['checkpoint']['state'] = {**cp, 'milestone': cp.get('current_milestone', cp.get('milestone', cp.get('active_milestone_id'))),
                                    'user_stop': cp.get('user_stop', {}).get('active') if isinstance(cp.get('user_stop'), dict) else cp.get('user_stop')}
     data['knowledge']['entries'] = [normalize(row) for row in reversed(data['knowledge'].pop('rows', []))]
     opened, history = [], []

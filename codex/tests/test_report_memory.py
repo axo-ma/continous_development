@@ -17,7 +17,7 @@ class MemoryReportTests(unittest.TestCase):
             memory.mkdir()
             fixtures = {
                 'OUTLINE.md': '# Synthetic plan',
-                'CHECKPOINT.json': json.dumps({'owner': {'role': 'hq'}, 'user_stop': {'active': False}}),
+                'CHECKPOINT.json': json.dumps({'owner': {'role': 'hq'}, 'user_stop': {'active': False}, 'active_milestone_id': 'SYNTHETIC-MS-02'}),
                 'KNOWLEDGE.jsonl': json.dumps({'id': 'K1', 'kind': 'observation', 'payload': {
                     'conclusion': 'Saved finding', 'limitations': 'Untested elsewhere', 'refs': [{'id': 'E1'}]}}) + '\n{bad\n',
                 'ATTENTION.jsonl': '\n'.join(json.dumps(row) for row in [
@@ -30,6 +30,7 @@ class MemoryReportTests(unittest.TestCase):
             data = project_snapshots(root)
             self.assertEqual(data['outline']['markdown'], '# Synthetic plan')
             self.assertEqual(data['checkpoint']['state']['user_stop'], False)
+            self.assertEqual(data['checkpoint']['state']['milestone'], 'SYNTHETIC-MS-02')
             self.assertEqual(data['knowledge']['status'], 'partial')
             entry = data['knowledge']['entries'][0]
             self.assertEqual(entry['text'], 'Saved finding')
