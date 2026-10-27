@@ -93,6 +93,30 @@ the working research HQ. Do not claim a full integration from fixture tests alon
 
 For a finite model-free diagnostic, `scripts/native_goal_probe.py --cli <trusted-installed-cli> --owner-thread <UUID>` starts one temporary official stdio service and closes it after reading persisted Goal metadata, current quota and thread metadata. It sends no Goal writes, thread loads or model input. This is an additional temporary service process, not another Desktop window. Its thread runtime status belongs to that service: a Desktop-owned active chat can appear `notLoaded` there. It always reports `wake_supported=false`, unknown workers and unverified live Desktop activity. Never use that result as evidence of idle, authorization to resume, or a production wake adapter. Unavailable Goal/quota is distinct from observed absence; read failure never licenses a retrying model loop.
 
+## Session-start connectivity is not Goal recovery
+
+A local `SessionStart` command hook can receive the actual session ID and the
+Desktop-provided tools environment. In a Windows Desktop test, a finite hook
+successfully read its own authorized technical chat through the first-party
+bundled tools client on `resume`. This establishes connectivity during that
+session event only. It does not establish automatic Goal activation, quota-reset
+recovery, live participant-idle detection, or recovery after a full application
+or computer restart. `CODEX_THREAD_ID` was absent in that hook environment; do not
+invent it or copy an agent identity to make another operation work.
+
+Hooks are discovered next to active configuration layers. A projectless test
+chat may not be among the project roots scanned by Desktop Settings. A user-level
+definition can be listed there, but its script must independently reject every
+session except the authorized test target. Disable duplicate definitions before
+testing. Review/trust of the exact hook definition remains a human platform step;
+installation or an enabled toggle alone is not proof of execution.
+
+Keep a diagnostic read-only, finite, and free of model input and Goal writes.
+Reserve a durable one-shot receipt before connecting, preserve interrupted
+attempts as unknown, and never silently upgrade a trusted diagnostic into a
+resumer. A successful callback is evidence, not authorization to bypass the
+native Goal lifecycle contract. See official [Hooks](https://learn.chatgpt.com/docs/hooks).
+
 ## Source
 
 Official [Using Goals in Codex](https://developers.openai.com/cookbook/examples/codex/using_goals_in_codex)
