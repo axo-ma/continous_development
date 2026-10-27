@@ -89,6 +89,10 @@ verified/unverified facts. Do not install another scheduler to paper over an
 unverified case. Test safe cases in a separately authorized technical chat, not
 the working research HQ. Do not claim a full integration from fixture tests alone.
 
+## Read-only diagnostic
+
+For a finite model-free diagnostic, `scripts/native_goal_probe.py --cli <trusted-installed-cli> --owner-thread <UUID>` starts one temporary official stdio service and closes it after reading persisted Goal metadata, current quota and thread metadata. It sends no Goal writes, thread loads or model input. This is an additional temporary service process, not another Desktop window. Its thread runtime status belongs to that service: a Desktop-owned active chat can appear `notLoaded` there. It always reports `wake_supported=false`, unknown workers and unverified live Desktop activity. Never use that result as evidence of idle, authorization to resume, or a production wake adapter. Unavailable Goal/quota is distinct from observed absence; read failure never licenses a retrying model loop.
+
 ## Source
 
 Official [Using Goals in Codex](https://developers.openai.com/cookbook/examples/codex/using_goals_in_codex)
