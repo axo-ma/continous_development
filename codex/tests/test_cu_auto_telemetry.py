@@ -244,12 +244,26 @@ class AutoTelemetryTests(unittest.TestCase):
         self.assertEqual(len(child['telemetry_provenance']['turns']),2)
         self.assertEqual(child['usage']['output'],4)
 
-    def test_child_beyond_active_parent_observation_stays_unmeasured(self):
+    def test_child_finishing_after_parent_keeps_verified_usage(self):
         hq=self.session(rows=[snapshot(100,0),*turn('one',5,complete=False),snapshot(200,20)])
         self.session('child',rows=[snapshot(0,6),*turn('child-one',18,20)],parent='hq',created=6)
         child=next(p for p in auto.enrich_report(self.root,self.data(),self.bounded(hq))['units'][0]['participants'] if p['participant_id']=='child')
-        self.assertIn('child_turn_exceeds_parent_span',child['telemetry_diagnostics'])
-        self.assertTrue(all(v is None for v in child['usage'].values()))
+        self.assertNotIn('child_turn_exceeds_parent_span',child['telemetry_diagnostics'])
+        self.assertEqual(child['usage']['output'],2)
+
+    def test_inherited_parent_markers_are_not_missing_child_measurements(self):
+        events=self.child_fixture()
+        path=self.root/'sessions/child.jsonl'
+        rows=[json.loads(line) for line in path.read_text().splitlines()]
+        own=turn('child-one',6,20)
+        info=own[2]['payload']['info']
+        info['last_token_usage']=dict(info['total_token_usage'])
+        copied=[event('task_started',6,turn_id='one')]
+        self.write(path,[rows[0],*copied,*own])
+        child=next(p for p in auto.enrich_report(self.root,self.data(),events)['units'][0]['participants'] if p['participant_id']=='child')
+        self.assertEqual(child['usage']['output'],2)
+        self.assertNotIn('missing_counter_baseline',child['telemetry_diagnostics'])
+        self.assertEqual(len(child['telemetry_provenance']['turns']),1)
 
     def test_registered_alias_requires_unique_exact_native_path_and_parent(self):
         events=self.child_fixture(registered=False)

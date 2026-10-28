@@ -130,7 +130,7 @@ def _read(path):
             snap = {'row': row, 'counts': _counts(info.get('total_token_usage') if isinstance(info, dict) else None)}
             total = info.get('total_token_usage') if isinstance(info, dict) else None
             last = info.get('last_token_usage') if isinstance(info, dict) else None
-            if (active and active['baseline'] is None and len(turns) == 1 and not snapshots and not source_errors
+            if (active and active['baseline'] is None and not snapshots and not source_errors
                     and rows[0].get('type') == 'session_meta' and rows[0]['_position'] == 1
                     and snap['counts'] is not None and _counts(last) == snap['counts'] and total == last
                     and all(type(v) is int and v >= 0 for v in total.values())):
@@ -427,6 +427,17 @@ def _sessions(root, settings, events):
     sessions = {identity: s for identity, s in sessions.items() if s and s['meta'].get('id') == identity}
     for identity in related - eligible:
         sessions[identity] = {'path': str(paths[identity][0]), 'meta': headers[identity], 'rows': [], 'turns': []}
+    # Forked helper journals may replay parent turn markers without counters.
+    # Exact native parent turn IDs prove those are inherited context, not work
+    # performed by the child. Preserve source rows and never discard counted work.
+    inherited = {}
+    for identity, session in sessions.items():
+        parent = session['meta'].get('parent_thread_id')
+        if parent in sessions and _spawn(session['meta']).get('parent_thread_id') == parent:
+            ids = {turn['id'] for turn in sessions[parent]['turns']}
+            inherited[identity] = {t['id'] for t in session['turns'] if t['id'] in ids and not t['snapshots']}
+    for identity, ids in inherited.items():
+        sessions[identity]['turns'] = [t for t in sessions[identity]['turns'] if t['id'] not in ids]
     return sessions
 
 
@@ -483,10 +494,9 @@ def enrich_report(root, data, events):
                     child_notes.append('child_reused_across_control_units')
                 chosen = {i for i, turn in enumerate(session['turns']) if any(
                     _within(_stamp(turn['start'].get('timestamp')), parent) for parent in parent_turns)}
-                if any(not any(_within(_observed_end(turn), parent)
-                       and _within(_stamp(turn['start'].get('timestamp')), parent) for parent in parent_turns)
-                       for i, turn in enumerate(session['turns']) if i in chosen):
-                    child_notes.append('child_turn_exceeds_parent_span')
+                # Attribution follows the verified start of the assignment.
+                # A parent may end its turn while its helper is still working;
+                # the child's measured completion must not erase that expense.
                 participants.append(_measure(session, chosen, person, child_notes))
                 request_scopes[identity] = _request_scoped(session, chosen)
                 descend(identity, chosen, [n for n in child_notes if n != 'unregistered_discovered_child'], depth + 1)

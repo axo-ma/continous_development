@@ -68,6 +68,16 @@ Date filters select CUs whose lifetime overlaps the requested dates. In this fir
 
 ## Bounded active memory
 
+Helper usage is attributed by verified native ancestry and the assignment's start
+inside an owned parent turn. A helper finishing after that parent turn remains
+part of the same assignment; completion need not fit inside the parent's turn.
+Counterless replayed parent turn IDs in a forked helper journal are inherited
+context, not missing child measurements. Only exact verified parent IDs are
+excluded; native rows and counted observations are preserved. Window completeness
+refers to selected project work: account-wide coverage is a separate scope label,
+not a reason to mark every window partial. Rejected or unassigned observations
+affect overlapping windows, or all windows when their time is unknown.
+
 CU events are `kind=artifact`, `payload.type=control_unit_event` envelopes in existing EVIDENCE. Immutable old batches move to `archive/evidence-store/*.jsonl` after verification. Explicit evidence lookup and CU reporting resolve cold history; normal memory queries remain hot-only. Archive files are cold storage, not another current memory catalogue. Never load the entire archive into the model context.
 
 Defaults: at most 300 hot CU events / 256 KiB, retired in batches to 75% of the caps. `.cd5/config.json` may override `control_units.keep_active_events` / `max_active_bytes`. Other evidence is not automatically moved by a CU write. A full evidence compaction is explicit, lossless and preserves references; do not run it on an existing project as an installation side effect.

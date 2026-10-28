@@ -404,9 +404,23 @@ def build_quota_usage(root, data, events=None, rate_path=None):
     for window in result['windows']:
         window['actors'] = _actors(window['assignments'], rates)
         window['total'] = _window_total(window['assignments'])
-        window['total']['status'] = 'partial' if window['total']['status'] == 'complete' else window['total']['status']
-        window['total']['value'] = None
-        # This report covers selected project journals, never the entire account.
+        # Completeness is relative to this project's selected work, not account
+        # coverage. Only real rejected/unassigned observations make it incomplete.
+        gaps = []
+        for rejected in result['diagnostics']:
+            session = sessions.get(rejected.get('thread_id'))
+            turns = [t for t in session['turns'] if not rejected.get('turn_id') or t['id'] == rejected['turn_id']] if session else []
+            if not turns or any(not native._stamp(t['start'].get('timestamp')) or not native._observed_end(t)
+                    or (native._stamp(t['start'].get('timestamp')) < native._stamp(window['ends_at'])
+                        and native._observed_end(t) >= native._stamp(window['starts_at'])) for t in turns):
+                gaps.append('rejected_project_observations')
+        for row in result['unassigned']:
+            start, end = native._stamp(row['observed_from']), native._stamp(row['observed_through'])
+            if not start or not end or start < native._stamp(window['ends_at']) and end >= native._stamp(window['starts_at']):
+                gaps.append('unassigned_project_observations')
+        if gaps and window['total']['status'] == 'complete':
+            window['total'].update(status='partial', value=None)
+        window['total']['notes'].extend(sorted(set(gaps)))
         window['total']['notes'].append('project_observations_only')
     result['unassigned_actors'] = _actors(result['unassigned'], rates)
     for i, window in enumerate(result['windows']):
