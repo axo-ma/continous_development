@@ -7,7 +7,7 @@ import tempfile
 import unittest
 
 from tools import cu_auto_telemetry as auto
-from tools.quota_usage import build_quota_usage
+from tools.quota_usage import build_quota_usage, _window_total, _merge_reset_variants
 from tools.work_units import load_rates
 
 
@@ -151,7 +151,8 @@ class QuotaUsageTests(unittest.TestCase):
         self.assertNotIn('usage',result['windows'][0])
         actor=next(a for a in result['windows'][0]['actors'] if a['thread_id']=='child')
         self.assertEqual(actor['usage']['output'],6);self.assertEqual(actor['request_count'],3)
-        self.assertIsNone(result['windows'][0]['total'])
+        self.assertEqual(result['windows'][0]['total']['status'],'partial')
+        self.assertIsNotNone(result['windows'][0]['total']['known_value'])
 
     def test_hash_witness_mutation_blocks_stale_report_and_append_is_bounded(self):
         file=self.session(rows=[counter(100,0),*self.turn(end=None)])
@@ -167,9 +168,34 @@ class QuotaUsageTests(unittest.TestCase):
     def test_exact_overlapping_reset_variants_preserved_and_marked(self):
         file=self.session(rows=[counter(100,0),*self.turn(snapshots=[counter(120,10,3600),counter(140,20,3601)])])
         result=self.run_report(file)
-        self.assertEqual(len(result['windows']),2)
-        self.assertTrue(all('overlapping_native_reset_evidence' in w['diagnostics'] for w in result['windows']))
-        self.assertEqual(sum(row['usage']['output'] for w in result['windows'] for row in w['assignments']),4)
+        self.assertEqual(len(result['windows']),1)
+        window=result['windows'][0]
+        self.assertEqual([v['ends_at'] for v in window['boundary_variants']],[stamp(3600),stamp(3601)])
+        self.assertEqual(sum(r['request_count'] for r in window['assignments']),2)
+        self.assertIn('native_reset_jitter_coalesced',window['diagnostics'])
+        self.assertEqual(sum(row['usage']['output'] for row in window['assignments']),4)
+
+    def test_one_total_does_not_add_parent_inclusive_child_counts(self):
+        def row(thread, value, exclusive=False):
+            return {'thread_id':thread,'exclusive_scope':exclusive,
+                    'work_units':{'known_value':value,'status':'complete'}}
+        total=_window_total([row('parent','10'),row('child','7')])
+        self.assertEqual(total['known_value'],'10')
+        self.assertEqual(total['status'],'partial')
+        total=_window_total([row('parent','10',True),row('child','7',True)])
+        self.assertEqual(total['value'],'17')
+        self.assertEqual(total['method'],'exclusive_sum')
+        total=_window_total([row('parent','10'),row('a','7',True),row('b','6',True)])
+        self.assertEqual(total['known_value'],'13')
+
+    def test_reset_jitter_does_not_chain_or_merge_accounts(self):
+        def window(end, account='a', verified=True):
+            return {'window_id':account+str(end),'starts_at':stamp(end-18000),'ends_at':stamp(end),
+                    'account_scope_key':account,'account_identity_verified':verified,'limit_id':'codex',
+                    'assignments':[],'reset_evidence':[],'diagnostics':[]}
+        result=_merge_reset_variants([window(3600),window(3602),window(3604),window(3601,'b'),window(3601,'c',False)])
+        self.assertEqual(len(result),4)
+        self.assertEqual(len(result[0]['boundary_variants']),2)
 
     def test_custom_tariff_path_and_duplicate_input_conservation(self):
         file=self.session(rows=[counter(100,0),*self.turn()]);events=self.marks(file);data=self.report(events)

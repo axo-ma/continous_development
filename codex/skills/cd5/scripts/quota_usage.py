@@ -223,11 +223,68 @@ def _actors(assignments, rates):
     return actors
 
 
+def _window_total(assignments):
+    """One conservative project subtotal; never add unproven overlapping scopes.
+
+    Verified exclusive rows add. Other actors may include those requests, so
+    take the maximum of that independent subtotal and each actor's subtotal.
+    This is a lower bound, not an estimate of the missing/overlapping portion.
+    """
+    with localcontext() as context:
+        context.prec = 80
+        independent, actors = Decimal(0), {}
+        known = False
+        complete = bool(assignments)
+        for row in assignments:
+            cost = row['work_units']
+            value = cost.get('known_value', cost.get('value'))
+            complete &= (row.get('exclusive_scope') is True and cost.get('status') == 'complete')
+            if value is None:
+                continue
+            amount = Decimal(str(value)); known = True
+            identity = row['thread_id']
+            actors[identity] = actors.get(identity, Decimal(0)) + amount
+            if row.get('exclusive_scope') is True:
+                independent += amount
+        total = max([independent, *actors.values()]) if known else None
+        text = format(total, 'f') if total is not None else None
+    return {'value': text if complete else None, 'known_value': text,
+            'status': 'complete' if complete else 'partial' if known else 'unknown',
+            'method': 'exclusive_sum' if complete else 'non_overlapping_lower_bound',
+            'notes': [] if complete else ['incomplete_or_overlapping_scope_not_summed']}
+
+
+def _merge_reset_variants(windows):
+    """Coalesce at most two seconds of jitter, only for a verified same account.
+
+    Compare with the first boundary, not the previous one (no transitive drift).
+    Preserve every observed interval and its source evidence unchanged.
+    """
+    merged = []
+    for window in sorted(windows, key=lambda w: (w['ends_at'], w['window_id'])):
+        target = next((item for item in merged
+            if item['account_identity_verified'] and window['account_identity_verified']
+            and item['account_scope_key'] == window['account_scope_key']
+            and item['limit_id'] == window['limit_id']
+            and 0 <= (native._stamp(window['ends_at']) - native._stamp(item['ends_at'])).total_seconds() <= 2), None)
+        variant = {k: window[k] for k in ('window_id', 'starts_at', 'ends_at', 'reset_evidence')}
+        if target is None:
+            window['boundary_variants'] = [variant]
+            merged.append(window)
+        else:
+            target['boundary_variants'].append(variant)
+            target['assignments'].extend(window['assignments'])
+            target['reset_evidence'] = target['reset_evidence'] + window['reset_evidence']
+            target['diagnostics'].append('native_reset_jitter_coalesced')
+    return merged
+
+
 def build_quota_usage(root, data, events=None, rate_path=None):
     """Return verified request observations grouped by explicitly observed 300m resets.
 
-    ``windows[].assignments`` are independently scoped actor rows, never a team
-    sum. ``unassigned`` retains token observations lacking a provable boundary.
+    ``windows[].assignments`` retain actor rows; ``total`` is one conservative
+    project subtotal, without adding unproven overlapping scopes.
+    ``unassigned`` retains token observations lacking a provable boundary.
     ``diagnostics`` contains rejected ambiguous/unverifiable source selections.
     The input report and canonical events/journals are not modified.
     """
@@ -343,10 +400,14 @@ def build_quota_usage(root, data, events=None, rate_path=None):
             windows[window_key]['assignments'].append(group)
         else:
             result['unassigned'].append(group)
-    result['windows'] = sorted(windows.values(), key=lambda w: (w['starts_at'], w['window_id']), reverse=True)
+    result['windows'] = sorted(_merge_reset_variants(windows.values()), key=lambda w: (w['starts_at'], w['window_id']), reverse=True)
     for window in result['windows']:
         window['actors'] = _actors(window['assignments'], rates)
-        window['total'] = None
+        window['total'] = _window_total(window['assignments'])
+        window['total']['status'] = 'partial' if window['total']['status'] == 'complete' else window['total']['status']
+        window['total']['value'] = None
+        # This report covers selected project journals, never the entire account.
+        window['total']['notes'].append('project_observations_only')
     result['unassigned_actors'] = _actors(result['unassigned'], rates)
     for i, window in enumerate(result['windows']):
         for other in result['windows'][i + 1:]:

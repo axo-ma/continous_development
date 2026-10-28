@@ -1,5 +1,143 @@
 {
   "schema_version": 1,
+  "quota_usage": {
+    "windows": [
+      {
+        "starts_at": "2026-10-21T10:00:00+03:00",
+        "ends_at": "2026-10-21T15:00:00+03:00",
+        "assignments": [
+          {
+            "participant_id": "demo-hq",
+            "thread_id": "demo-hq",
+            "name": "Штаб",
+            "role": "hq",
+            "model": "gpt-6.1-sol",
+            "reasoning": "low",
+            "elapsed_ms": 120000,
+            "coverage": "complete",
+            "exclusive_scope": true,
+            "usage": {
+              "cached_input": 2458368,
+              "uncached_input": 16308,
+              "output": 3233
+            },
+            "cu_title": "Синтетическая проверка отчёта",
+            "work_units": {
+              "value": "3.107828",
+              "known_value": "3.107828",
+              "status": "complete",
+              "basis": "standard_short_context_estimate",
+              "rate_date": "2026-10-21",
+              "notes": []
+            },
+            "request_count": 1,
+            "assignment": {
+              "text": "Синтетическое поручение: проверить демонстрационные данные."
+            }
+          },
+          {
+            "participant_id": "demo-review",
+            "thread_id": "demo-review",
+            "name": "Проверяющий",
+            "role": "reviewer",
+            "model": "gpt-6.1-sol",
+            "reasoning": "high",
+            "elapsed_ms": 40000,
+            "coverage": "complete",
+            "exclusive_scope": true,
+            "usage": {
+              "cached_input": 418560,
+              "uncached_input": 42553,
+              "output": 4369
+            },
+            "cu_title": "Синтетическая проверка отчёта",
+            "work_units": {
+              "value": "1.70652",
+              "known_value": "1.70652",
+              "status": "complete",
+              "basis": "standard_short_context_estimate",
+              "rate_date": "2026-10-21",
+              "notes": []
+            },
+            "request_count": 1,
+            "assignment": {
+              "text": "Синтетическое поручение: проверить демонстрационные данные."
+            }
+          }
+        ],
+        "actors": [
+          {
+            "participant_id": "demo-hq",
+            "thread_id": "demo-hq",
+            "name": "Штаб",
+            "role": "hq",
+            "model": "gpt-6.1-sol",
+            "reasoning": "low",
+            "elapsed_ms": 120000,
+            "coverage": "complete",
+            "exclusive_scope": true,
+            "usage": {
+              "cached_input": 2458368,
+              "uncached_input": 16308,
+              "output": 3233
+            },
+            "cu_title": "Синтетическая проверка отчёта",
+            "work_units": {
+              "value": "3.107828",
+              "known_value": "3.107828",
+              "status": "complete",
+              "basis": "standard_short_context_estimate",
+              "rate_date": "2026-10-21",
+              "notes": []
+            },
+            "request_count": 1,
+            "assignment": {
+              "text": "Синтетическое поручение: проверить демонстрационные данные."
+            }
+          },
+          {
+            "participant_id": "demo-review",
+            "thread_id": "demo-review",
+            "name": "Проверяющий",
+            "role": "reviewer",
+            "model": "gpt-6.1-sol",
+            "reasoning": "high",
+            "elapsed_ms": 40000,
+            "coverage": "complete",
+            "exclusive_scope": true,
+            "usage": {
+              "cached_input": 418560,
+              "uncached_input": 42553,
+              "output": 4369
+            },
+            "cu_title": "Синтетическая проверка отчёта",
+            "work_units": {
+              "value": "1.70652",
+              "known_value": "1.70652",
+              "status": "complete",
+              "basis": "standard_short_context_estimate",
+              "rate_date": "2026-10-21",
+              "notes": []
+            },
+            "request_count": 1,
+            "assignment": {
+              "text": "Синтетическое поручение: проверить демонстрационные данные."
+            }
+          }
+        ],
+        "total": {
+          "value": null,
+          "known_value": "4.814348",
+          "status": "partial",
+          "method": "exclusive_sum",
+          "notes": []
+        },
+        "diagnostics": []
+      }
+    ],
+    "unassigned": [],
+    "diagnostics": []
+  },
   "title": "Пример прогресса · демонстрационные данные",
   "generated_at": "2026-10-21T15:00:00+03:00",
   "units": [
@@ -8,11 +146,11 @@
       "title": "Подготовить отчёт",
       "goal": "Подготовить отчёт",
       "description": "Вымышленный пример для документации. Реальные журналы не используются.",
-      "result": "Работа продолжается · синтетический пример",
+      "result": "Отчёт готов",
       "result_detail": "Сохранённые подробности открываются без нового обращения к модели.",
-      "status": "open",
+      "status": "completed",
       "started_at": "2026-10-21T14:00:00+03:00",
-      "ended_at": null,
+      "ended_at": "2026-10-21T14:02:00+03:00",
       "elapsed_ms": 120000,
       "reported_ms": 120000,
       "participants": [
@@ -23,20 +161,13 @@
           "role": "hq",
           "model": "gpt-6.1-sol",
           "reasoning": "low",
-          "elapsed_ms": null,
-          "coverage": "partial",
+          "elapsed_ms": 120000,
+          "coverage": "complete",
           "exclusive_scope": true,
           "usage": {
             "cached_input": 2458368,
             "uncached_input": 16308,
             "output": 3233
-          },
-          "telemetry_diagnostics": [
-            "pending_turn",
-            "missing_measured_duration"
-          ],
-          "telemetry_provenance": {
-            "observed_through": "2026-10-21T14:01:00+03:00"
           }
         },
         {
@@ -61,7 +192,7 @@
         "uncached_input": 58861,
         "output": 7602
       },
-      "usage_status": "partial",
+      "usage_status": "complete",
       "budget": {
         "unit": "WU",
         "scope": "whole_team",
@@ -337,258 +468,5 @@
   "scope": {
     "label": "Демонстрационные данные",
     "usage_label": "Факт по всем четырём примерам"
-  },
-  "outline": {
-    "status": "available",
-    "markdown": "# Пример проекта\n\nЭто **вымышленный** пример.\n\n- Подготовить данные\n- Проверить результат"
-  },
-  "checkpoint": {
-    "status": "available",
-    "state": {
-      "phase": "Проверка примера",
-      "owner": "Штаб",
-      "next_action": "Обсудить результат",
-      "user_stop": false
-    }
-  },
-  "knowledge": {
-    "status": "available",
-    "entries": [
-      {
-        "id": "K-DEMO-1",
-        "kind": "observation",
-        "title": "Что показала проверка",
-        "text": "На вымышленных данных отчёт открывает сохранённые записи.",
-        "limitations": "Этот пример не подтверждает результаты реального проекта.",
-        "sources": [
-          {
-            "label": "Синтетическая фикстура документации"
-          }
-        ]
-      }
-    ]
-  },
-  "attention": {
-    "status": "available",
-    "open": [
-      {
-        "id": "A-DEMO-1",
-        "title": "Выбор следующего шага",
-        "question": "Какой из двух вариантов изучить первым?",
-        "status": "open",
-        "requires_user": true,
-        "description": "Вымышленный вопрос для демонстрации формы."
-      }
-    ],
-    "history": [
-      {
-        "title": "Пример закрытого вопроса",
-        "question": "Как назвать отчёт?",
-        "decision": "Отчёт о прогрессе",
-        "status": "closed"
-      }
-    ]
-  },
-  "quota_usage": {
-    "schema_version": 1,
-    "scope": "project_observed_usage",
-    "boundary_policy": "synthetic_example",
-    "windows": [
-      {
-        "window_id": "synthetic-reset-1",
-        "starts_at": "2026-10-21T10:00:00+03:00",
-        "ends_at": "2026-10-21T15:00:00+03:00",
-        "assignments": [
-          {
-            "thread_id": "example-planner",
-            "participant_id": "example-planner",
-            "role": "hq",
-            "name": "Planner",
-            "model": "gpt-6.1-sol",
-            "cu_id": "CU-012",
-            "cu_title": "Синтетический пример проверки",
-            "result": "Синтетический результат задачи",
-            "assignment": {
-              "status": "synthetic_example",
-              "text": "Синтетическое поручение: подготовить проверку и принять результат.",
-              "provenance": []
-            },
-            "agent_result": {
-              "text": "Синтетический ответ: результат проверки сохранён.",
-              "provenance": []
-            },
-            "usage": {
-              "cached_input": 1000000,
-              "uncached_input": 10000,
-              "output": 1000
-            },
-            "coverage": "complete",
-            "request_count": 3,
-            "observed_from": "2026-10-21T10:05:00+03:00",
-            "observed_through": "2026-10-21T10:20:00+03:00",
-            "provenance": []
-          },
-          {
-            "thread_id": "example-executor",
-            "participant_id": "example-executor",
-            "role": "executor",
-            "name": "Executor",
-            "model": "gpt-6.1-sol",
-            "cu_id": "CU-012",
-            "cu_title": "Синтетический пример проверки",
-            "result": "Синтетический результат задачи",
-            "assignment": {
-              "status": "synthetic_example",
-              "text": "Синтетическое поручение: реализовать чтение тестового набора.",
-              "provenance": []
-            },
-            "agent_result": {
-              "text": "Синтетический ответ: чтение реализовано и проверено на фикстуре.",
-              "provenance": []
-            },
-            "usage": {
-              "cached_input": 500000,
-              "uncached_input": 20000,
-              "output": 2000
-            },
-            "coverage": "complete",
-            "request_count": 3,
-            "observed_from": "2026-10-21T10:05:00+03:00",
-            "observed_through": "2026-10-21T10:20:00+03:00",
-            "provenance": []
-          },
-          {
-            "thread_id": "example-reviewer",
-            "participant_id": "example-reviewer",
-            "role": "reviewer",
-            "name": "Reviewer",
-            "model": "gpt-6.1-sol",
-            "cu_id": "CU-012",
-            "cu_title": "Синтетический пример проверки",
-            "result": "Синтетический результат задачи",
-            "assignment": {
-              "status": "synthetic_example",
-              "text": "Синтетическое поручение: независимо проверить результат исполнителя.",
-              "provenance": []
-            },
-            "agent_result": {
-              "text": "Синтетический ответ: проверен один ожидаемый результат; ограничения сохранены.",
-              "provenance": []
-            },
-            "usage": {
-              "cached_input": 200000,
-              "uncached_input": 10000,
-              "output": 1000
-            },
-            "coverage": "complete",
-            "request_count": 3,
-            "observed_from": "2026-10-21T10:05:00+03:00",
-            "observed_through": "2026-10-21T10:20:00+03:00",
-            "provenance": []
-          }
-        ],
-        "actors": [
-          {
-            "thread_id": "example-planner",
-            "participant_id": "example-planner",
-            "role": "hq",
-            "name": "Planner",
-            "model": "gpt-6.1-sol",
-            "cu_id": "CU-012",
-            "cu_title": "Синтетический пример проверки",
-            "result": "Синтетический результат задачи",
-            "assignment": {
-              "status": "synthetic_example",
-              "text": "Синтетическое поручение: подготовить проверку и принять результат.",
-              "provenance": []
-            },
-            "agent_result": {
-              "text": "Синтетический ответ: результат проверки сохранён.",
-              "provenance": []
-            },
-            "usage": {
-              "cached_input": 1000000,
-              "uncached_input": 10000,
-              "output": 1000
-            },
-            "coverage": "complete",
-            "request_count": 3,
-            "observed_from": "2026-10-21T10:05:00+03:00",
-            "observed_through": "2026-10-21T10:20:00+03:00",
-            "provenance": []
-          },
-          {
-            "thread_id": "example-executor",
-            "participant_id": "example-executor",
-            "role": "executor",
-            "name": "Executor",
-            "model": "gpt-6.1-sol",
-            "cu_id": "CU-012",
-            "cu_title": "Синтетический пример проверки",
-            "result": "Синтетический результат задачи",
-            "assignment": {
-              "status": "synthetic_example",
-              "text": "Синтетическое поручение: реализовать чтение тестового набора.",
-              "provenance": []
-            },
-            "agent_result": {
-              "text": "Синтетический ответ: чтение реализовано и проверено на фикстуре.",
-              "provenance": []
-            },
-            "usage": {
-              "cached_input": 500000,
-              "uncached_input": 20000,
-              "output": 2000
-            },
-            "coverage": "complete",
-            "request_count": 3,
-            "observed_from": "2026-10-21T10:05:00+03:00",
-            "observed_through": "2026-10-21T10:20:00+03:00",
-            "provenance": []
-          },
-          {
-            "thread_id": "example-reviewer",
-            "participant_id": "example-reviewer",
-            "role": "reviewer",
-            "name": "Reviewer",
-            "model": "gpt-6.1-sol",
-            "cu_id": "CU-012",
-            "cu_title": "Синтетический пример проверки",
-            "result": "Синтетический результат задачи",
-            "assignment": {
-              "status": "synthetic_example",
-              "text": "Синтетическое поручение: независимо проверить результат исполнителя.",
-              "provenance": []
-            },
-            "agent_result": {
-              "text": "Синтетический ответ: проверен один ожидаемый результат; ограничения сохранены.",
-              "provenance": []
-            },
-            "usage": {
-              "cached_input": 200000,
-              "uncached_input": 10000,
-              "output": 1000
-            },
-            "coverage": "complete",
-            "request_count": 3,
-            "observed_from": "2026-10-21T10:05:00+03:00",
-            "observed_through": "2026-10-21T10:20:00+03:00",
-            "provenance": []
-          }
-        ],
-        "total": null,
-        "coverage": "partial",
-        "reset_evidence": [
-          {
-            "synthetic": true
-          }
-        ],
-        "diagnostics": []
-      }
-    ],
-    "unassigned": [],
-    "diagnostics": [],
-    "account_total": null,
-    "subscription_percent": null
   }
 }

@@ -9,7 +9,8 @@ CODEX=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(CODEX/'skills/cd5/scripts'))
 from control_unit_report import write_report
 from cu_budget import initial_budget, normalize_patch, apply_patch
-from work_units import annotate_report
+from work_units import annotate_report, price_usage
+from quota_usage import _window_total
 
 
 def participant(identity,name,role,cached,uncached,output,elapsed=120000):
@@ -40,7 +41,15 @@ def demo_data():
             'elapsed_ms':120000,'reported_ms':120000,
             'participants':people,'usage':usage,'usage_status':'complete','budget':budget,
             'sources':[{'label':'Демонстрационный пример','text':'Синтетические задачи и счётчики; это не история пользователя.'}]})
-    return {'schema_version':1,'title':'Пример прогресса · демонстрационные данные','generated_at':'2026-10-21T15:00:00+03:00',
+    rows=[{**person,'cu_title':'Синтетическая проверка отчёта','work_units':price_usage(person['model'],person['usage']),
+           'request_count':1,'assignment':{'text':'Синтетическое поручение: проверить демонстрационные данные.'}}
+          for person in units[0]['participants']]
+    total=_window_total(rows)
+    total.update(value=None,status='partial')
+    quota={'windows':[{'starts_at':'2026-10-21T10:00:00+03:00','ends_at':'2026-10-21T15:00:00+03:00',
+                       'assignments':rows,'actors':rows,'total':total,'diagnostics':[]}],
+           'unassigned':[],'diagnostics':[]}
+    return {'schema_version':1,'quota_usage':quota,'title':'Пример прогресса · демонстрационные данные','generated_at':'2026-10-21T15:00:00+03:00',
             'units':units,'page_size':10,'scope':{'label':'Демонстрационные данные','usage_label':'Факт по всем четырём примерам'}}
 
 
