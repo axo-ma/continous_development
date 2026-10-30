@@ -13,8 +13,10 @@ import time
 
 try:
     from .cd5_config import memory_dir
+    from .continuation_admission import decide as continuation_decision
 except ImportError:
     from cd5_config import memory_dir
+    from continuation_admission import decide as continuation_decision
 
 
 def objective_digest(objective):
@@ -30,7 +32,7 @@ def fresh(observation, now):
 
 
 def plan(checkpoint, caller, objective, native, quota, activity, authorization,
-         *, now=None, token_budget=None):
+         *, now=None, token_budget=None, continuation_observation=None):
     """Decide only; no implicit status updates or delegated host identity."""
     now = time.time() if now is None else now
     objective_digest(objective)
@@ -38,6 +40,9 @@ def plan(checkpoint, caller, objective, native, quota, activity, authorization,
         raise ValueError('explicit token budget must be a positive integer')
     if checkpoint.get('owner', {}).get('thread_id') != caller:
         return {'action': 'hold', 'reason': 'caller_is_not_owner'}
+    if ('continuation_admission_required' in checkpoint
+            and type(checkpoint['continuation_admission_required']) is not bool):
+        return {'action': 'hold', 'reason': 'invalid_continuation_admission_setting'}
     if not fresh(native, now) or native.get('available') is not True or native.get('caller_thread_id') != caller:
         return {'action': 'get_goal', 'reason': 'fresh_native_observation_required'}
     if 'goal' not in native:
@@ -92,8 +97,18 @@ def plan(checkpoint, caller, objective, native, quota, activity, authorization,
         if goal.get('objective') != objective:
             return {'action': 'hold', 'reason': 'existing_goal_conflict_preserve_objective_and_accounting'}
         if status == 'active':
+            if checkpoint.get('continuation_admission_required') is True:
+                if (not isinstance(continuation_observation, dict)
+                        or continuation_observation.get('quota') != quota.get('data')
+                        or continuation_observation.get('quota_observed_at') != quota.get('observed_at')):
+                    return {'action': 'hold', 'reason': 'detailed_observation_missing_or_quota_mismatch',
+                            'end_turn': True, 'external_dispatch_allowed': False}
+                decision = continuation_decision(checkpoint, continuation_observation, now)
+                if not decision['allowed']:
+                    return {'action': 'hold', 'reason': 'continuation_denied:' + decision['reason'],
+                            'end_turn': True, 'external_dispatch_allowed': False}
             return {'action': 'continue', 'reason': 'matching_active_native_goal',
-                    'preserve_usage_and_budget': True}
+                    'preserve_usage_and_budget': True, 'external_dispatch_allowed': False}
         return {'action': 'wait_user_resume', 'reason': 'native_goal_' + str(status),
                 'preserve_usage_and_budget': True}
     if authorization.get('create_requested') is not True:
@@ -143,7 +158,8 @@ def main():
           args.objective_file.read_text(encoding='utf-8').strip(),
           observations.get('native', {}), observations.get('quota', {}),
           observations.get('activity', {}), observations.get('authorization', {}),
-          token_budget=args.token_budget), ensure_ascii=False))
+          token_budget=args.token_budget,
+          continuation_observation=observations.get('continuation')), ensure_ascii=True))
 
 
 if __name__ == '__main__':

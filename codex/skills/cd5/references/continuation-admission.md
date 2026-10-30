@@ -24,7 +24,17 @@ inventing one or copying fixture booleans is not coverage. Worker event loss,
 restart baseline and races between observation and a subsequent action remain
 integration requirements, not capabilities proven by these unit tests.
 
-This component is not yet wired into a production Desktop continuation path.
+The existing `native_goal.py` planner accepts an optional `continuation` object
+inside its observations JSON. A checkpoint with the explicit boolean
+`continuation_admission_required=true` requires that object before returning
+`continue` for an existing active Goal. Its quota data/time must equal the
+planner's separate quota observation. Missing details cannot fall back to the
+legacy generic workers_idle flag; malformed enablement settings also deny.
+Goal creation, pause authority and preservation of stopped Goals retain their
+existing lifecycle contract. This flag is not enabled in user projects by
+installation. Before enabling it, supply an actual complete observation source.
+
+This planner integration is not yet wired into a production Desktop event path.
 The working HQ retains native Goal only. The trusted technical Stop trial and
 event recorder remain distinct bounded tests; they never dispatch into the HQ.
 Automatic quota resume and application/computer restart recovery are unverified.

@@ -3,6 +3,8 @@ import copy
 import unittest
 from tools import native_goal as ng
 from tools import planner_control
+from tools import continuation_admission as admission
+from tools import worker_observations as workers
 
 
 class NativeGoalTests(unittest.TestCase):
@@ -114,6 +116,34 @@ class NativeGoalTests(unittest.TestCase):
         result = planner_control.decide(state, cp, {}, 1000)
         self.assertEqual(result[0], 'hold')
         self.assertEqual(result[1], 'native_goal_drives_continuation')
+
+    def test_required_detailed_check_cannot_fall_back_to_generic_workers_idle(self):
+        self.active()
+        self.cp.update(continuation_admission_required=True, owner_generation=1,
+            waiting_user=False, goal_complete=False, continuation_authorized=True,
+            native_goal={'driver': 'native'})
+        self.assertEqual(self.decide()['action'], 'hold')
+        obs = dict(owner_thread_id='synthetic-owner', generation=1,
+            checkpoint_sha256=admission.fingerprint(self.cp), observed_at=1000,
+            pending_input=False, owner_status={'type': 'idle'},
+            quota=self.quota['data'], quota_observed_at=1000,
+            worker_registry=workers.registry([], 'synthetic-owner'), worker_statuses=[],
+            worker_coverage_verified=True, coverage_receipt_id='synthetic-only',
+            native_goal_status='active', other_driver_active=False,
+            boundary_already_consumed=False)
+        result = self.decide(continuation_observation=obs)
+        self.assertEqual(result['action'], 'continue')
+        self.assertFalse(result['external_dispatch_allowed'])
+        obs['worker_coverage_verified'] = False
+        self.assertEqual(self.decide(continuation_observation=obs)['reason'],
+                         'continuation_denied:worker_coverage_unknown')
+
+    def test_invalid_flag_and_conflicting_quota_cannot_bypass(self):
+        self.active()
+        self.cp['continuation_admission_required'] = 1
+        self.assertEqual(self.decide()['reason'], 'invalid_continuation_admission_setting')
+        self.cp['continuation_admission_required'] = True
+        self.assertEqual(self.decide(continuation_observation={'quota': {}})['action'], 'hold')
 
 
 if __name__ == '__main__':
