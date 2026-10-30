@@ -51,3 +51,26 @@ This planner integration is not yet wired into a production Desktop event path.
 The working HQ retains native Goal only. The trusted technical Stop trial and
 event recorder remain distinct bounded tests; they never dispatch into the HQ.
 Automatic quota resume and application/computer restart recovery are unverified.
+
+## Observed native prompt-hook limitation
+
+In a controlled Windows Desktop trial on30Oct2026, a temporary native Goal made
+two natural turns and completed through the native tool. Both turns emitted Stop,
+but neither emitted UserPromptSubmit. A subsequent actual UI message in the same
+chat did emit UserPromptSubmit under the same trusted recorder definition. Thus
+the negative native result had a positive control: the recorder was functional.
+
+Do not use UserPromptSubmit as a pre-model gate for automatic native Goal on that
+observed installation. The callback can protect an ordinary user prompt without
+covering native continuation. This is an observed installation limit, not a
+claim about every future Codex release. PreToolUse occurs after a model has
+already requested a tool; SessionStart is not established as a per-continuation
+callback. Neither is a proven substitute for the missing native pre-model gate.
+
+The owner-run admission implemented here remains useful for denying substantive
+work at the beginning of an admitted model turn. It does **not** guarantee zero
+model calls while native Goal remains active under externally changed conditions.
+Use the explicitly authorized native pause policy at actual waiting boundaries;
+never run a model quota-polling loop. A separate client-owned runtime would be a
+different explicitly authorized mode, not a silent second server controlling a
+Desktop-owned Goal. Do not bypass the native Goal tool's lifecycle contract.

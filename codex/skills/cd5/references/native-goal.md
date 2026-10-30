@@ -140,6 +140,11 @@ native Goal lifecycle contract. See official [Hooks](https://learn.chatgpt.com/d
 
 ## Source
 
+An actual Windows trial found that automatic native Goal continuation skipped
+UserPromptSubmit, while real UI user input triggered the same trusted recorder.
+Do not claim that hook enforces a pre-model native admission gate on the observed
+installation. See [the controlled result and limits](continuation-admission.md#observed-native-prompt-hook-limitation).
+
 For the separate, opt-in one-shot Stop experiment and its evidence limits, see
 [Stop hook trial](stop-hook-trial.md). Its controlled test flags are not a
 production source of live worker/STOP state. It never replaces this HQ's native
