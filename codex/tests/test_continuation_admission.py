@@ -74,6 +74,20 @@ class AdmissionTests(unittest.TestCase):
         self.cp['next_action']['kind'] = 'different'
         self.assertFalse(gate.decide(self.cp, self.obs, 101)['allowed'])
 
+    def test_current_owner_turn_is_not_an_external_wake(self):
+        self.obs.update(execution_context='owner_turn', caller_thread_id='root',
+            expected_turn_id='current', host_turn={'id': 'current', 'status': 'inProgress'},
+            owner_status={'type': 'active', 'activeFlags': []})
+        self.assertTrue(self.decision()['allowed'])
+        self.assertFalse(self.decision()['external_dispatch_allowed'])
+        for key, value in [('caller_thread_id', 'other'), ('expected_turn_id', 'other'),
+                ('host_turn', {'id': 'current', 'status': 'completed'}),
+                ('owner_status', {'type': 'active', 'activeFlags': ['waitingOnApproval']})]:
+            original = copy.deepcopy(self.obs)
+            self.obs[key] = value
+            self.assertFalse(self.decision()['allowed'])
+            self.obs = original
+
 
 if __name__ == '__main__':
     unittest.main()

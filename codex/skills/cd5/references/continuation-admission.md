@@ -13,10 +13,23 @@ fields are denied; this function never fills them in or grants authorization.
 
 The observation must match the exact checkpoint fingerprint and owner generation.
 Activity and quota must be at most5 seconds old with no future timestamps. The
-root must be idle with no pending input, the correct ordinary300-minute quota
+root must be idle by default, with no pending input; the correct ordinary300-minute quota
 must be below90, every known worker must have a fresh idle read, and the caller
 must separately establish full worker coverage. Goal must be active, another
 driver absent and this boundary not already consumed. Unknown values deny.
+
+For admission of useful work by the already-running owner, an explicit
+`execution_context=owner_turn` accepts active status only when caller identity,
+expected turn ID and the host's actual inProgress turn all match, with no active
+waiting flags. It authorizes only that same owner's work, never an external wake.
+An arbitrary active thread or completed/different turn is rejected.
+
+A live current-owner integration used direct collaboration.list_agents (only
+the root was present), Desktop read_thread, get_goal and fresh account usage.
+The detailed native planner returned continue with external dispatch forbidden.
+This establishes one owner admission, not an unattended event transport or a
+guarantee about participants not covered by the current native team. A standalone
+hook cannot manufacture that direct collaboration snapshot.
 
 The caller is responsible for obtaining actual same-Desktop observations and
 verifying their provenance. A coverage receipt ID is only an audit reference;

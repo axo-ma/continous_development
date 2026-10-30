@@ -60,7 +60,20 @@ def decide(checkpoint, observation, now):
         if observation.get('pending_input') is not False:
             return deny('pending_input_or_unknown')
         status = observation.get('owner_status')
-        if not isinstance(status, dict) or status.get('type') != 'idle' or status.get('activeFlags') not in (None, []):
+        context = observation.get('execution_context', 'idle_boundary')
+        owner_active_here = False
+        if context == 'owner_turn':
+            host_turn = observation.get('host_turn', {})
+            expected_turn = observation.get('expected_turn_id')
+            owner_active_here = (observation.get('caller_thread_id') == owner
+                and isinstance(expected_turn, str) and bool(expected_turn)
+                and isinstance(host_turn, dict) and host_turn.get('id') == expected_turn
+                and host_turn.get('status') == 'inProgress')
+        if (context not in ('idle_boundary', 'owner_turn') or not isinstance(status, dict)
+                or status.get('activeFlags') not in (None, [])
+                or (context == 'owner_turn' and
+                    (not owner_active_here or status.get('type') != 'active'))
+                or (context == 'idle_boundary' and status.get('type') != 'idle')):
             return deny('owner_not_proven_idle')
         if not fresh(observation.get('quota_observed_at'), now) or not quota_allowed(observation.get('quota')):
             return deny('quota_closed_or_unknown')
@@ -85,6 +98,7 @@ def decide(checkpoint, observation, now):
             return deny('goal_inactive_or_competing_driver')
         if observation.get('boundary_already_consumed') is not False:
             return deny('duplicate_or_unknown_boundary')
-        return dict(result, allowed=True, reason='native_only')
+        return dict(result, allowed=True,
+                    reason='current_native_owner_only' if context == 'owner_turn' else 'native_only')
     except (KeyError, TypeError, ValueError, AttributeError):
         return deny('missing_or_malformed_state')
