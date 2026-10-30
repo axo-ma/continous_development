@@ -140,6 +140,28 @@ native Goal lifecycle contract. See official [Hooks](https://learn.chatgpt.com/d
 
 ## Source
 
+## Verified ordinary useful continuation
+
+The acceptance condition for ordinary continuity is: after an intermediate turn
+ends, without another user message, the mechanism starts the next turn and that
+turn performs the next useful authorized step. Keeping Goal active, rather than
+pausing/blocking it at every intermediate result, is necessary for this path.
+
+A controlled Windows trial on30Oct2026 verified this with actual work: the first
+turn recorded the current commit and a plan for15 synthetic native-Goal regression
+tests, then ended with Goal active. The application's natural next Goal turn ran
+all15 tests successfully on the unchanged commit and saved the real unittest
+result. External history and native Goal context verified that no second message
+was sent to start that turn. The test Goal then completed normally.
+
+This is proof of ordinary continuation at an active Goal's idle boundary. It is
+not automatic resumption of a deliberate pause, user STOP, closed quota, or a
+crashed application. Preserve those as separate scenarios. A missing pre-model
+callback remains a separate limitation, not a reason to block independent useful
+native work under the current admission rules.
+
+## Sources
+
 An actual Windows trial found that automatic native Goal continuation skipped
 UserPromptSubmit, while real UI user input triggered the same trusted recorder.
 Do not claim that hook enforces a pre-model native admission gate on the observed
