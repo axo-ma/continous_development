@@ -31,6 +31,21 @@ def fresh(observation, now):
             and math.isfinite(at) and 0 <= now - at <= 60)
 
 
+def ready_action(checkpoint):
+    """Select only an already authorized independent action; never grant scope."""
+    actions = checkpoint.get('ready_actions', [])
+    if not isinstance(actions, list):
+        return None
+    for action in actions:
+        if (isinstance(action, dict) and isinstance(action.get('kind'), str)
+                and action['kind'] and action['kind'] not in
+                {'wait_user', 'wait_user_decision', 'wait_quota', 'complete', 'stop'}
+                and action.get('authorized') is True and action.get('useful') is True
+                and action.get('requires_user') is False and action.get('blocked') is False):
+            return dict(action)
+    return None
+
+
 def plan(checkpoint, caller, objective, native, quota, activity, authorization,
          *, now=None, token_budget=None, continuation_observation=None):
     """Decide only; no implicit status updates or delegated host identity."""
@@ -61,8 +76,6 @@ def plan(checkpoint, caller, objective, native, quota, activity, authorization,
         reason = 'user_stop' if stop is True else 'stop_unknown'
     elif checkpoint.get('cd5', {}).get('enabled') is False:
         reason = 'cd5_off'
-    elif checkpoint.get('next_action', {}).get('kind') in {'wait_user', 'wait_user_decision'}:
-        reason = 'wait_user'
     elif checkpoint.get('goal_status') in {'complete', 'completed', 'verified_complete', 'closed'}:
         if goal is None or status == 'complete':
             return {'action': 'hold', 'reason': 'goal_already_complete'}
@@ -80,6 +93,13 @@ def plan(checkpoint, caller, objective, native, quota, activity, authorization,
             reason = 'quota_unknown_or_disallowed'
         elif used >= 90:
             reason = 'quota90'
+    if reason is None and checkpoint.get('next_action', {}).get('kind') in {'wait_user', 'wait_user_decision'}:
+        alternative = ready_action(checkpoint)
+        if alternative is not None and active:
+            return {'action': 'select_next_action', 'reason': 'independent_authorized_work_remains',
+                    'next_action': alternative, 'keep_goal_active': True,
+                    'readmission_required': True, 'external_dispatch_allowed': False}
+        reason = 'wait_user'
     if reason:
         if active:
             permitted = (authorization.get('pause_requested') is True

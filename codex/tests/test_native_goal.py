@@ -145,6 +145,36 @@ class NativeGoalTests(unittest.TestCase):
         self.cp['continuation_admission_required'] = True
         self.assertEqual(self.decide(continuation_observation={'quota': {}})['action'], 'hold')
 
+    def test_waiting_branch_does_not_pause_independent_authorized_work(self):
+        self.active()
+        self.cp['next_action'] = {'kind': 'wait_user'}
+        self.cp['ready_actions'] = [dict(kind='fix_independent_code', authorized=True,
+            useful=True, requires_user=False, blocked=False)]
+        decision = self.decide()
+        self.assertEqual(decision['action'], 'select_next_action')
+        self.assertTrue(decision['keep_goal_active'])
+        self.assertTrue(decision['readmission_required'])
+        self.assertEqual(self.cp['next_action']['kind'], 'wait_user')
+        # This is a recommendation, not implicit mutation/admission.
+        self.quota['data']['rateLimits']['primary']['usedPercent'] = 90
+        self.assertEqual(self.decide()['reason'], 'quota90')
+        self.cp['user_stop']['active'] = True
+        self.assertEqual(self.decide()['reason'], 'user_stop')
+
+    def test_unapproved_or_blocked_alternative_does_not_bypass_wait(self):
+        self.active()
+        self.cp['next_action'] = {'kind': 'wait_user'}
+        for change in ({'authorized': False}, {'authorized': 1}, {'requires_user': True},
+                       {'blocked': True}, {'useful': False}):
+            self.cp['ready_actions'] = [dict(dict(kind='work', authorized=True,
+                useful=True, requires_user=False, blocked=False), **change)]
+            self.assertEqual(self.decide()['reason'], 'wait_user')
+
+    def test_optional_capability_limit_does_not_stop_ready_native_work(self):
+        self.active()
+        self.cp['limitations'] = ['native pre-model hook unavailable']
+        self.assertEqual(self.decide()['action'], 'continue')
+
 
 if __name__ == '__main__':
     unittest.main()

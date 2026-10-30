@@ -43,4 +43,20 @@ At a user-facing work boundary, use the current Control Unit as the reporting gr
 
 Continue useful authorized branches when one branch is blocked. Wait only when STOP, quota, unavailable or unknown activity, or exhaustion of useful permitted steps prevents progress. Save the concrete blocker and resume condition, and show a genuine human decision when required.
 
+An intermediate result, a finished CU, or an unavailable optional enhancement is
+not itself a reason to pause/block the whole Goal. Before ending useful work,
+identify the next already-authorized action and execute it when possible. Do not
+substitute a promise to continue for available work. In particular, an unverified
+pre-model native callback does not block ordinary authorized owner-run work with
+its existing admission checks; retain that limitation separately.
+
+If one branch needs human input, first check independent ready actions. The native
+planner can recommend `select_next_action` from explicitly authorized, useful,
+unblocked `ready_actions` requiring no human input. Save that selection and repeat
+normal admission before execution; selection itself grants no run permission.
+STOP, quota and actual unknown activity remain controlling. Pause for a human
+answer only when it is required for all remaining useful permitted work. Preserve
+native Goal active at ordinary useful-work boundaries. A paused/blocked Goal
+still needs the host's actual user/system resume; never claim to resume it yourself.
+
 Before advancing the plan, follow [outline](outline.md). After accepted significant results or scope changes, reconcile affected risks, dependencies, milestone outcomes and the active plan; a completed CU does not itself close a milestone. Preserve earlier criteria and outcomes as history.
