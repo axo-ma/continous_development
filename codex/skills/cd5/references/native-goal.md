@@ -138,8 +138,6 @@ attempts as unknown, and never silently upgrade a trusted diagnostic into a
 resumer. A successful callback is evidence, not authorization to bypass the
 native Goal lifecycle contract. See official [Hooks](https://learn.chatgpt.com/docs/hooks).
 
-## Source
-
 ## Verified ordinary useful continuation
 
 The acceptance condition for ordinary continuity is: after an intermediate turn
