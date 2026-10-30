@@ -15,6 +15,10 @@ import time
 
 
 def admitted(event, state):
+    if not isinstance(event, dict) or not isinstance(state, dict):
+        return False
+    if not isinstance(state.get('target'), str) or not state['target']:
+        return False
     if event.get('session_id') != state.get('target'):
         return False
     if event.get('hook_event_name') != 'Stop' or event.get('stop_hook_active') is not False:
@@ -24,16 +28,20 @@ def admitted(event, state):
     required = {'authorized': True, 'stop': False, 'waiting_user': False,
                 'goal_complete': False, 'workers_idle': True, 'goal_absent': True,
                 'driver': 'stop_trial', 'remaining_step': 'CD5_STOP_STEP_TWO'}
-    if any(state.get(key) != value for key, value in required.items()):
+    if any(type(state.get(key)) is not type(value) or state[key] != value
+           for key, value in required.items()):
         return False
-    if state.get('owner') != state.get('target') or state.get('generation') != 1:
+    if (state.get('owner') != state.get('target')
+            or type(state.get('generation')) is not int or state['generation'] != 1):
         return False
-    if event.get('last_assistant_message', '').strip() != 'CD5_STOP_STEP_ONE':
+    if event.get('last_assistant_message') != 'CD5_STOP_STEP_ONE':
         return False
     return True
 
 
 def quota_allowed(value):
+    if not isinstance(value, dict):
+        return False
     if value.get('ordinaryUsageAllowed') is not True:
         return False
     buckets = value.get('rateLimitsByLimitId')
@@ -41,6 +49,8 @@ def quota_allowed(value):
     if not isinstance(bucket, dict):
         return False
     window = bucket.get('primary', {})
+    if not isinstance(window, dict):
+        return False
     percent = window.get('usedPercent')
     return (window.get('windowDurationMins') == 300 and type(percent) in (int, float)
             and 0 <= percent < 90 and bucket.get('spendControlReached') is not True)

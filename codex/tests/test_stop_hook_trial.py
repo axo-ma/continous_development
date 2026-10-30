@@ -61,6 +61,18 @@ class StopTrialTests(unittest.TestCase):
                        dict(last_assistant_message='done')]:
             self.assertFalse(trial.admitted(dict(self.event, **change), self.state))
 
+    def test_numbers_cannot_impersonate_explicit_boolean_permission(self):
+        for key in ('authorized', 'stop', 'waiting_user', 'goal_complete',
+                    'workers_idle', 'goal_absent'):
+            for value in (0, 1, None, 'true', 'false'):
+                self.assertFalse(trial.admitted(self.event, dict(self.state, **{key: value})))
+        self.assertFalse(trial.admitted(self.event, dict(self.state, generation=True)))
+        self.assertFalse(trial.admitted({}, {}))
+        self.assertFalse(trial.admitted(None, self.state))
+        self.assertFalse(trial.admitted(self.event, None))
+        self.assertFalse(trial.quota_allowed(None))
+        self.assertFalse(trial.quota_allowed(dict(self.quota, rateLimits={'primary': None})))
+
     def test_quota_boundary_unknown_and_denied(self):
         for percent in [90, 100, None, -1, True, float('nan')]:
             self.quota['rateLimits']['primary']['usedPercent'] = percent
