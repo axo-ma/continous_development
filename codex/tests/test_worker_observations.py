@@ -46,6 +46,25 @@ class WorkerObservationTests(unittest.TestCase):
         self.assertFalse(workers.assess(self.known, [self.read, self.read],
                                        101, 1)['known_workers_idle'])
 
+    def test_nested_worker_requires_its_own_fresh_read(self):
+        events = [{'session_id': 'child', 'event': 'SubagentStart', 'agent_id': 'grandchild'}]
+        known = workers.registry(events + self.events, 'root')
+        self.assertEqual(known['workers'], ['child', 'grandchild'])
+        self.assertFalse(workers.assess(known, [self.read], 101, 1)['known_workers_idle'])
+        grandchild = dict(self.read, thread_id='grandchild')
+        self.assertTrue(workers.assess(known, [self.read, grandchild],
+                                      101, 1)['known_workers_idle'])
+        self.assertFalse(workers.assess(known, [self.read, dict(grandchild,
+            status={'type': 'active'})], 101, 1)['known_workers_idle'])
+
+    def test_unrelated_workers_never_join_and_nested_interrupt_denies(self):
+        rows = self.events + [{'session_id': 'unrelated', 'event': 'SubagentStart',
+                              'agent_id': 'outside'}]
+        self.assertEqual(workers.registry(rows, 'root')['workers'], ['child'])
+        rows.append({'session_id': 'child', 'event': 'Interrupt'})
+        self.assertFalse(workers.assess(workers.registry(rows, 'root'),
+                                       [self.read], 101, 1)['known_workers_idle'])
+
 
 if __name__ == '__main__':
     unittest.main()

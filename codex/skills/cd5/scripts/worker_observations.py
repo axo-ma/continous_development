@@ -14,21 +14,30 @@ def registry(events, owner):
     workers = set()
     invalid = False
     interrupted = False
-    for row in events:
-        if not isinstance(row, dict):
-            invalid = True
-            continue
-        if row.get('session_id') != owner:
-            continue
-        event = row.get('event')
-        if event == 'Interrupt':
-            interrupted = True
-        elif event in ('SubagentStart', 'SubagentStop'):
-            identity = row.get('agent_id')
-            if not isinstance(identity, str) or not identity or identity == owner:
+    rows = list(events)
+    # Recover descendant closure without relying on filesystem event ordering.
+    # An unrelated session never joins the tree without an observed parent edge.
+    changed = True
+    while changed:
+        changed = False
+        for row in rows:
+            if not isinstance(row, dict):
                 invalid = True
-            else:
-                workers.add(identity)
+                continue
+            parent = row.get('session_id')
+            if not isinstance(parent, str) or parent not in workers | {owner}:
+                continue
+            event = row.get('event')
+            if event == 'Interrupt':
+                interrupted = True
+            elif event in ('SubagentStart', 'SubagentStop'):
+                identity = row.get('agent_id')
+                if (not isinstance(identity, str) or not identity
+                        or identity in (owner, parent)):
+                    invalid = True
+                elif identity not in workers:
+                    workers.add(identity)
+                    changed = True
     return {'owner': owner, 'workers': sorted(workers), 'invalid_events': invalid,
             'interrupted': interrupted, 'coverage_verified': False}
 

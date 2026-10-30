@@ -31,8 +31,13 @@ generation; changing owner invalidates old status reads. A missing event receipt
 is unknown, not proof that no work occurred. The recorder deliberately does not
 enroll unrelated sessions automatically.
 
-The child hook's session_id identifies its parent; its turn_id identifies the
-child turn. Do not equate that turn_id with the parent's current turn.
+In the live nested trial both executor and leaf hooks used the original root
+session_id. It identifies the observed session group, not necessarily the
+immediate caller. The registry includes all such identities; it can also resolve
+explicit nested session links when supplied, without relying on receipt order.
+The hook's turn_id identifies the child turn. Do not equate that turn_id with the
+root's current turn. Independent Desktop reads confirmed both descendants idle
+and their tasks completed after the nested trial.
 SubagentStop runs at a boundary where another hook can continue the child. It
 does not by itself establish terminal completion or current idleness.
 
