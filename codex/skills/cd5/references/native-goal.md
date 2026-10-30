@@ -140,6 +140,11 @@ native Goal lifecycle contract. See official [Hooks](https://learn.chatgpt.com/d
 
 ## Source
 
+For the separate, opt-in one-shot Stop experiment and its evidence limits, see
+[Stop hook trial](stop-hook-trial.md). Its controlled test flags are not a
+production source of live worker/STOP state. It never replaces this HQ's native
+Goal driver automatically.
+
 Official [Using Goals in Codex](https://developers.openai.com/cookbook/examples/codex/using_goals_in_codex)
 describes thread-scoped persisted goals, idle continuation and stopping conditions.
 The [App Server protocol](https://learn.chatgpt.com/docs/app-server#manage-a-thread-goal)
