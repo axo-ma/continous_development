@@ -1,5 +1,5 @@
 > **Historical/diagnostic reference, superseded for active CD5 continuation.**
-> Current architecture is [one shared Continuator and CD5 Goal](file-continuation.md).
+> Current architecture is [one shared Continuator and CD5 controls](file-continuation.md).
 > Native agent Goal is not a CD5 driver. Do not activate legacy wakeups or follow
 > old native-only instructions below for current HQs; preserve the historical evidence.
 

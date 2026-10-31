@@ -5,8 +5,8 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 from tools.file_continuation_service import FileService
-from tools.goal_files import permission, user_command, finish_or_wait
-from tools.goal_file_hook import handle
+from tools.planner_controls import permission, user_command, finish_or_wait
+from tools.planner_file_hook import handle
 
 
 class FileContinuationTests(unittest.TestCase):
@@ -120,9 +120,9 @@ class FileContinuationTests(unittest.TestCase):
         handle(event, 'test', self.root)
         self.assertEqual(permission(self.root), 'stopped')
         handle(dict(event, session_id='other'), 'other-target', self.root)
-        handle(dict(event, hook_event_name='UserPromptSubmit', prompt='Automatic Continue Goal please'), 'test', self.root)
+        handle(dict(event, hook_event_name='UserPromptSubmit', prompt='Automatic Continue Planner please'), 'test', self.root)
         self.assertEqual(permission(self.root), 'stopped')
-        result = handle(dict(event, hook_event_name='UserPromptSubmit', prompt='Continue Goal'), 'test', self.root)
+        result = handle(dict(event, hook_event_name='UserPromptSubmit', prompt='Continue Planner'), 'test', self.root)
         self.assertEqual(result['decision'], 'block')
         self.assertEqual(permission(self.root), 'continue')
         finish_or_wait(self.root)

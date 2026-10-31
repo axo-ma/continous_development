@@ -11,12 +11,12 @@ import sys
 import time
 try:
     from .desktop_tools_bridge import DesktopBridge
-    from .goal_files import permission
+    from .planner_controls import permission
     from .planner_control import atomic, locked, read
     from .stop_hook_trial import quota_allowed
 except ImportError:
     from desktop_tools_bridge import DesktopBridge
-    from goal_files import permission
+    from planner_controls import permission
     from planner_control import atomic, locked, read
     from stop_hook_trial import quota_allowed
 
@@ -52,7 +52,7 @@ class FileService:
             return self.save(allowed)
         if self.status['uncertain']:
             return self.save('send_outcome_unknown_no_retry')
-        stamp = (Path(self.config['flags']) / 'Continue Goal').stat().st_mtime_ns
+        stamp = (Path(self.config['flags']) / 'continue_planner').stat().st_mtime_ns
         if self.status.get('quota_hold_permission') == stamp:
             return self.save('quota_closed_wait_for_explicit_permission')
         result = self.bridge.call('read_thread', dict(threadId=self.config['target'],

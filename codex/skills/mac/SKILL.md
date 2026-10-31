@@ -6,7 +6,7 @@ description: Coordinate optional, bounded work with native subagents under one s
 # Multi-Agent Chat (MAC)
 
 When MAC is used inside CD5, the agreed goal and milestones remain in the HQ's
-canonical memory. CD5's shared Continuator and Stop Goal / Continue Goal are the
+canonical memory. CD5's shared Continuator and Stop Planner / Continue Planner are the
 only continuation mechanism there; primary and delegated agents must not add
 native agent Goals or competing wakeups as CD5 drivers. MAC remains independent
 and never changes CD5 continuation flags merely because delegation is enabled.

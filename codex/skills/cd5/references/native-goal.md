@@ -2,7 +2,7 @@
 
 > **Historical only; superseded for active CD5 work.** This file preserves prior
 > instructions and evidence about native Goals. Current CD5 continuation follows
-> [Stop Goal / Continue Goal](file-continuation.md). Do not use the historical
+> [Stop Planner / Continue Planner](file-continuation.md). Do not use the historical
 > instructions below to create, resume, update, or clear a native Goal for CD5, or
 > to start another driver. Preserve existing native Goal history and usage.
 

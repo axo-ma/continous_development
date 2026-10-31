@@ -6,11 +6,11 @@ from pathlib import Path
 import sys
 import time
 try:
-    from .goal_file_hook import handle as handle_command
+    from .planner_file_hook import handle as handle_command
     from .planner_control import atomic, read
     from .shared_continuator import projects, current_project
 except ImportError:
-    from goal_file_hook import handle as handle_command
+    from planner_file_hook import handle as handle_command
     from planner_control import atomic, read
     from shared_continuator import projects, current_project
 

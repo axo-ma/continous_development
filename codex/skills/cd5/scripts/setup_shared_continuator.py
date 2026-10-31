@@ -9,9 +9,11 @@ import subprocess
 import sys
 try:
     from .cd5_config import memory_dir
+    from .planner_controls import migrate
     from .planner_control import atomic, read
 except ImportError:
     from cd5_config import memory_dir
+    from planner_controls import migrate
     from planner_control import atomic, read
 
 
@@ -26,6 +28,7 @@ def setup(home, root, hooks_file, cache, mac_script, model, install_logon=False)
                             text=True, encoding='utf-8', timeout=10)
     if policy.returncode or json.loads(policy.stdout).get('authorized') is not True:
         raise ValueError('model policy denied enrollment')
+    migrate(memory_dir(root)/'goal-control')
     home.mkdir(parents=True, exist_ok=True)
     registry_path = home/'REGISTRY.json'
     registry = read(registry_path) if registry_path.exists() else dict(schema_version=1, projects=[])
@@ -40,8 +43,8 @@ def setup(home, root, hooks_file, cache, mac_script, model, install_logon=False)
         entries.append(entry)
     atomic(registry_path, registry)
     source = Path(__file__).resolve().parent
-    names = ('continuator_hook.py', 'shared_continuator.py', 'goal_file_hook.py',
-             'goal_files.py', 'desktop_tools_bridge.py', 'file_continuation_service.py',
+    names = ('continuator_hook.py', 'shared_continuator.py', 'planner_file_hook.py',
+             'planner_controls.py', 'desktop_tools_bridge.py', 'file_continuation_service.py',
              'planner_control.py', 'cd5_config.py', 'stop_hook_trial.py')
     digest = hashlib.sha256(b''.join((source/n).read_bytes() for n in names)).hexdigest()
     frozen = home/('hooks-'+digest[:16])
@@ -50,7 +53,7 @@ def setup(home, root, hooks_file, cache, mac_script, model, install_logon=False)
         shutil.copy2(source/name, frozen/name)
     command = subprocess.list2cmdline([sys.executable, '-X', 'utf8', str(frozen/'continuator_hook.py'), '--home', str(home)])
     group = {'hooks': [dict(type='command', command=command, timeout=4,
-                           statusMessage='CD5 Continuator: подключённые штабы') ]}
+                           statusMessage='CD5 controls: Continue Planner / Stop Planner') ]}
     definition = dict(hooks={e:[group] for e in ('SessionStart', 'UserPromptSubmit', 'Interrupt')})
     current = read(hooks_file) if hooks_file.exists() else {'hooks':{}}
     original = json.dumps(current, ensure_ascii=False)
@@ -65,7 +68,7 @@ def setup(home, root, hooks_file, cache, mac_script, model, install_logon=False)
                 cmd = hook.get('command', '')
                 if 'continuator_hook.py' in cmd and str(home) in cmd:
                     return True
-                if 'goal_file_hook.py' in cmd and any(f'--target {o} ' in cmd for o in owners):
+                if any(n in cmd for n in ('planner_file_hook.py', 'goal_file_hook.py')) and any(f'--target {o} ' in cmd for o in owners):
                     return True
             return False
         current['hooks'][event] = [g for g in groups if not replaced(g)] + [group]

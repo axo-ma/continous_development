@@ -10,13 +10,13 @@ try:
     from .cd5_config import memory_dir
     from .desktop_tools_bridge import DesktopBridge
     from .file_continuation_service import FileService
-    from .goal_files import permission
+    from .planner_controls import permission
     from .planner_control import atomic, locked, read
 except ImportError:
     from cd5_config import memory_dir
     from desktop_tools_bridge import DesktopBridge
     from file_continuation_service import FileService
-    from goal_files import permission
+    from planner_controls import permission
     from planner_control import atomic, locked, read
 
 
@@ -48,11 +48,11 @@ def current_project(entry, root):
         mac_script=entry['mac_script'], model=entry['model'],
         message=entry.get('message') or (
             f'Продолжай ранее разрешённую работу CD5 в {root}. Прочитай текущие '
-            f'OUTLINE и CHECKPOINT. Управление: {flags}. Сначала проверь Stop Goal; '
+            f'OUTLINE и CHECKPOINT. Управление: {flags}. Сначала проверь stop_planner; '
             f'при наличии не начинай работу. Автоматическое сообщение не разрешает '
-            f'создавать Continue Goal или удалять Stop Goal. Выполни следующий полезный '
+            f'создавать continue_planner или удалять stop_planner. Выполни следующий полезный '
             f'разрешённый шаг. Перед окончательным завершением, обязательным вопросом '
-            f'или закрытой квотой удали Continue Goal; промежуточный отчёт не причина '
+            f'или закрытой квотой удали continue_planner; промежуточный отчёт не причина '
             f'останавливать работу. Встроенные Goal агентов не использовать как драйвер CD5.'))
 
 

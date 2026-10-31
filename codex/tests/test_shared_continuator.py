@@ -8,7 +8,7 @@ from unittest.mock import patch
 from tools.shared_continuator import SharedService, run
 from tools.planner_control import locked
 from tools.continuator_hook import handle
-from tools.goal_files import user_command
+from tools.planner_controls import user_command
 
 
 class SharedTests(unittest.TestCase):
@@ -66,9 +66,9 @@ class SharedTests(unittest.TestCase):
         self.service.step()
         self.assertEqual(self.sends, [('owner1','owner1'),('new-owner','new-owner')])
         handle(dict(session_id='owner1',hook_event_name='Interrupt'),self.home,{})
-        self.assertFalse((self.flags(0)/'Stop Goal').exists())
+        self.assertFalse((self.flags(0)/'stop_planner').exists())
         handle(dict(session_id='new-owner',hook_event_name='Interrupt'),self.home,{})
-        self.assertTrue((self.flags(0)/'Stop Goal').exists())
+        self.assertTrue((self.flags(0)/'stop_planner').exists())
         self.service.step()
         self.assertEqual(len(self.sends),2)
 
@@ -83,7 +83,7 @@ class SharedTests(unittest.TestCase):
         self.assertEqual(self.sends,[])
 
     def test_unenrolled_chat_does_not_touch_any_flags(self):
-        self.assertEqual(handle(dict(session_id='unrelated',hook_event_name='UserPromptSubmit',prompt='Continue Goal'),self.home,{}),{})
+        self.assertEqual(handle(dict(session_id='unrelated',hook_event_name='UserPromptSubmit',prompt='Continue Planner'),self.home,{}),{})
         self.assertFalse(any(self.flags(n).exists() for n in range(2)))
 
     def test_singleton_is_per_user_even_with_different_configuration_home(self):

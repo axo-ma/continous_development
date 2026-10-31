@@ -7,11 +7,14 @@ metadata:
 
 # CD5
 
-For continuous CD5 work, read [Stop Goal / Continue Goal](references/file-continuation.md).
+Architecture: **CD5 Continuator and Controls**. The user commands are
+Continue Planner / Stop Planner; the controls files are continue_planner / stop_planner.
+
+For continuous CD5 work, read [Stop Planner / Continue Planner](references/file-continuation.md).
 One hidden service per user OS login serves multiple explicitly enrolled HQs,
 sequentially. Each HQ keeps its five canonical memory files. The service reads
 only continuation flags, known busy state, and the fresh quota gate, then sends
-one continuation when admitted. The HQ removes Continue when its agreed work is
+one continuation when admitted. The HQ removes continue_planner when its agreed work is
 complete, a user answer is required, or quota closes admission. The service gets
 the current planner chat from `CHECKPOINT.owner.thread_id` each time; never pin it
 to an old chat ID. The CD5 project goal is the agreed tasks and milestones in its

@@ -32,7 +32,7 @@ def prepare(root, thread, server, hooks_file, mac_script, model):
     command = (f'"{sys.executable}" -X utf8 "{frozen / "goal_file_hook.py"}" '
                f'--target {thread} --directory "{runtime}"')
     group = {'hooks': [dict(type='command', command=command, timeout=2,
-                           statusMessage='CD5: Stop Goal / Continue Goal — рабочий штаб')]}
+                           statusMessage='CD5: Stop Planner / Continue Planner — рабочий штаб')]}
     definition = {'description': 'Управление продолжением одного штаба',
                   'hooks': {event: [group] for event in ('Interrupt', 'UserPromptSubmit')}}
     current = read(hooks_file) if hooks_file.exists() else {'hooks': {}}
@@ -53,11 +53,11 @@ def prepare(root, thread, server, hooks_file, mac_script, model):
         flags=str(runtime), status=str(runtime/'SERVICE.json'), mac_script=str(mac_script), model=model,
         message=(f'Автоматическое продолжение ранее разрешённой работы CD5. Прочитай текущую '
                  f'память проекта и инструкцию file-continuation.md установленного CD5. '
-                 f'Файлы управления: {runtime}. Сначала проверь Stop Goal: при наличии закончи '
-                 f'без работы. Не создавай Continue Goal и не удаляй Stop Goal из автоматического '
+                 f'Файлы управления: {runtime}. Сначала проверь Stop Planner: при наличии закончи '
+                 f'без работы. Не создавай Continue Planner и не удаляй Stop Planner из автоматического '
                  f'сообщения. Если есть разрешённая работа — выполни следующий полезный шаг. '
                  f'Перед окончательным завершением, обязательным вопросом человеку, STOP или '
-                 f'закрытой квотой удали Continue Goal. Промежуточный отчёт не означает завершения. '
+                 f'закрытой квотой удали Continue Planner. Промежуточный отчёт не означает завершения. '
                  f'Native Goal не создавай и не возобновляй; сообщения другим чатам без прямого '
                  f'поручения пользователя не отправляй.'))
     atomic(runtime/'CONFIG.json', config)
