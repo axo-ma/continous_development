@@ -5,6 +5,12 @@ description: Coordinate optional, bounded work with native subagents under one s
 
 # Multi-Agent Chat (MAC)
 
+When MAC is used inside CD5, the agreed goal and milestones remain in the HQ's
+canonical memory. CD5's shared Continuator and Stop Goal / Continue Goal are the
+only continuation mechanism there; primary and delegated agents must not add
+native agent Goals or competing wakeups as CD5 drivers. MAC remains independent
+and never changes CD5 continuation flags merely because delegation is enabled.
+
 Use MAC when the user invokes a MAC command or a useful separable task makes delegation worthwhile. The primary remains the current chat and owns scope, coordination, integration, and consequential decisions. Avoid delegation when the task is too small to benefit.
 
 Resolve local settings through `python <installed-mac>/scripts/mac_settings.py [auto|off|status]`; `--skill-dir` can explicitly select another installation. The default is the skill directory containing that script, not the current working directory. `MAC auto` and `MAC off` set the one mode; `MAC status` reports it. Read it before every optional launch, including nested helpers. Do not maintain duplicate enabled switches. A disabled mode blocks optional assignments. Missing settings default to auto; invalid settings require inspection, never automatic enabling. Project STOP, authorization and budgets remain controlling.

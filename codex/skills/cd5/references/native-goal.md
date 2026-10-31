@@ -1,4 +1,10 @@
-# Native Goal: ordinary HQ continuation
+# Historical record: prior native Goal continuation guidance
+
+> **Historical only; superseded for active CD5 work.** This file preserves prior
+> instructions and evidence about native Goals. Current CD5 continuation follows
+> [Stop Goal / Continue Goal](file-continuation.md). Do not use the historical
+> instructions below to create, resume, update, or clear a native Goal for CD5, or
+> to start another driver. Preserve existing native Goal history and usage.
 
 Use the application's persisted thread Goal for ordinary continuous HQ work.
 This is separate from OUTLINE, CHECKPOINT.goal_status, a CU goal or a prompt that

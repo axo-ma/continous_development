@@ -139,7 +139,10 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--config', required=True, type=Path)
     args = parser.parse_args()
-    run(read(args.config))
+    config = read(args.config)
+    if config.get('mode') == 'session':
+        parser.error('per-HQ production processes are retired; use shared_continuator.py')
+    run(config)
 
 
 if __name__ == '__main__':

@@ -1,11 +1,10 @@
 # Portable command-line tools
 
-For native Goal startup and lifecycle, follow [native-goal.md](native-goal.md).
-`native_goal.py --root <project> --caller-thread <owner> --objective-file <file>
---observations <json>` is a read-only admission planner. It uses fresh native,
-quota and participant observations plus explicit authorization; it never changes
-a Goal or treats a local plan as proof of native state. Execute requested native
-actions only through the owner's actual host tools, then verify with a native read.
+For CD5 continuation flags, service admission and HQ completion behavior, follow
+[Stop Goal / Continue Goal](file-continuation.md). The native Goal material is
+retained as a historical reference only; these tools do not create, resume, or
+modify native Goal state for CD5. The agreed project goal and current work remain
+in canonical CD5 memory.
 
 `control_units.py begin` accepts optional `--forecast-low`, `--forecast-high`, `--confidence` and `--limit-wu`. `control_units.py budget` revises explicit values with a stable event ID and short reason; see [WU budgets](wu-budgets.md). Forecasts, limits and actuals remain separate; missing values are not zero.
 

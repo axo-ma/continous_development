@@ -1,4 +1,4 @@
-"""Prepare an exact-chat session service and frozen hooks; never starts or trusts it."""
+"""Historical per-chat preparation fixture; production uses setup_shared_continuator."""
 import argparse
 import hashlib
 import json
@@ -75,8 +75,7 @@ def main():
     parser.add_argument('--model', required=True)
     parser.add_argument('--session-authorized', action='store_true', required=True)
     args = parser.parse_args()
-    print(json.dumps(prepare(args.root, args.thread, args.server, args.hooks_file,
-                             args.mac_script, args.model), ensure_ascii=False))
+    parser.error('per-chat setup is retired; use setup_shared_continuator.py')
 
 
 if __name__ == '__main__':

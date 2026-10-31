@@ -7,19 +7,21 @@ metadata:
 
 # CD5
 
-For an explicitly user-selected two-file continuation service, read
-[Stop Goal / Continue Goal](references/file-continuation.md). That choice replaces
-native Goal for the selected HQ; do not create/resume a native Goal or run two
-drivers there. Installation alone never selects or starts either mechanism.
+For continuous CD5 work, read [Stop Goal / Continue Goal](references/file-continuation.md).
+One hidden service per user OS login serves multiple explicitly enrolled HQs,
+sequentially. Each HQ keeps its five canonical memory files. The service reads
+only continuation flags, known busy state, and the fresh quota gate, then sends
+one continuation when admitted. The HQ removes Continue when its agreed work is
+complete, a user answer is required, or quota closes admission. The service gets
+the current planner chat from `CHECKPOINT.owner.thread_id` each time; never pin it
+to an old chat ID. The CD5 project goal is the agreed tasks and milestones in its
+memory. The application's native agent Goal is not its driver. Do not create,
+resume, update, or clear native Goal state for CD5 continuation, and do not run a
+competing driver. Installation alone never enrolls or starts an HQ.
 
-For ordinary continuous HQ work, first read [Native Goal](references/native-goal.md).
-Use the application's actual Goal when explicitly authorized by the user,
-including a standing instruction to set a Goal when launching their HQ. OUTLINE
-and CHECKPOINT are not native Goal state. The owner reads, creates only if absent,
-and verifies its own Goal; preserve existing objectives, usage and lifecycle.
-Do not run an external wakeup alongside native continuation. For optional
-diagnostics/recovery read [Planner control](references/planner-control.md).
-Installation never creates a Goal, starts work or enables a schedule.
+The former native Goal instructions in [native-goal.md](references/native-goal.md)
+are retained as historical evidence only. Installation never creates a Goal,
+starts work, enrolls an HQ, or enables a schedule.
 
 For ordinary CU accounting, use [automatic usage](references/automatic-usage.md): capture short begin/finish marks and let code derive factual journal usage at report time. Do not routinely prepare manual telemetry mappings or generate separate accounting narratives.
 

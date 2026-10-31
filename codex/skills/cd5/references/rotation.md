@@ -1,9 +1,16 @@
 # CD5 owner rotation
 
-Native Goal is chat-scoped. Read [native Goal](native-goal.md) before transferring
-a continuously running owner: confirm safe suspension of the previous owner's
-native continuation and require the successor to verify its own explicitly
-authorized Goal. Never assume that a prompt or copied CHECKPOINT transfers it.
+The continuation service routes each enrolled HQ to the current planner chat from
+`CHECKPOINT.owner.thread_id`; it does not rotate owners or change ownership. Do
+not use native Goal as a handoff mechanism. A user-authorized handoff is one
+controlled ownership change: confirm the old owner is safely stopped and known
+idle, then have the successor read project instructions, OUTLINE, CHECKPOINT and
+relevant records and confirm the goal, constraints, STOP, budget and next action.
+Recheck that the old owner has not changed; update only owner and necessary
+revision/time fields while preserving the rest of CHECKPOINT. Do not change other
+HQs' flags, memory, or native Goal history. Redirect only existing authorized
+continuation settings, preserving their state; never create duplicates. Keep the
+prior owner until successor acceptance is confirmed.
 
 Use weighted stages to bound continuity when the project has enabled this policy. The default rotation limit is three weighted stages: ordinary stage = 1, stage with a return, a measured log of at least 8,000 characters, or a dispute = 2, and more than two returns = 3. Stage IDs are stable and idempotent. A project may lower the limit to two after confirmed premature compaction; do not raise it above three without evidence.
 
