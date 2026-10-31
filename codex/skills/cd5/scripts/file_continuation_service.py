@@ -1,7 +1,7 @@
 """Sequential service: read two files, observe Desktop, send one continue.
 
 It never creates/deletes control files or reasons about the task. No native Goal,
-new app-server, helper inventory or restart/quota-recovery system is involved.
+new app-server or helper inventory is involved. Quota is a temporary send gate.
 """
 import argparse
 import json
@@ -25,7 +25,9 @@ class FileService:
     def __init__(self, config, bridge, saved=None):
         self.config, self.bridge = config, bridge
         self.status = saved if saved is not None else dict(used=0, waiting=False,
-            before_turn=None, uncertain=False, quota_hold_permission=None)
+            before_turn=None, uncertain=False)
+        # The old quota latch is obsolete even when no controls currently exist.
+        self.status.pop('quota_hold_permission', None)
         self.session = config.get('mode') == 'session'
         if self.session:
             if config.get('session_authorized') is not True or config.get('limit') is not None:
@@ -52,9 +54,7 @@ class FileService:
             return self.save(allowed)
         if self.status['uncertain']:
             return self.save('send_outcome_unknown_no_retry')
-        stamp = (Path(self.config['flags']) / 'continue_planner').stat().st_mtime_ns
-        if self.status.get('quota_hold_permission') == stamp:
-            return self.save('quota_closed_wait_for_explicit_permission')
+        # Controls retain permission; fresh quota is a temporary send gate.
         result = self.bridge.call('read_thread', dict(threadId=self.config['target'],
             turnLimit=1, includeOutputs=False, maxOutputCharsPerItem=1))
         if result.get('thread', {}).get('id') != self.config['target'] or not result.get('turns'):
@@ -71,7 +71,6 @@ class FileService:
         if not self.session and self.status['used'] >= self.config['limit']:
             return self.save('trial_limit_reached')
         if not quota_allowed(self.bridge.call('get_usage_limits', {})):
-            self.status['quota_hold_permission'] = stamp
             return self.save('quota_closed')
         check = subprocess.run([sys.executable, '-X', 'utf8', self.config['mac_script'],
             'check-model', '--model', self.config['model']], capture_output=True,

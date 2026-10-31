@@ -51,8 +51,9 @@ def current_project(entry, root):
             f'OUTLINE и CHECKPOINT. Управление: {flags}. Сначала проверь stop_planner; '
             f'при наличии не начинай работу. Автоматическое сообщение не разрешает '
             f'создавать continue_planner или удалять stop_planner. Выполни следующий полезный '
-            f'разрешённый шаг. Перед окончательным завершением, обязательным вопросом '
-            f'или закрытой квотой удали continue_planner; промежуточный отчёт не причина '
+            f'разрешённый шаг. Перед окончательным завершением или обязательным вопросом '
+            f'удали continue_planner. При квоте>=90 сохрани continue_planner и закончи ход; '
+            f'служба сама дождётся квоты<90 без модели. Промежуточный отчёт не причина '
             f'останавливать работу. Встроенные Goal агентов не использовать как драйвер CD5.'))
 
 
@@ -76,7 +77,7 @@ class SharedService:
                     history = list(saved.get('owner_history', []))
                     history.append({k: v for k, v in saved.items() if k != 'owner_history'})
                     saved = dict(used=saved['used'], waiting=False, before_turn=None,
-                                 uncertain=False, quota_hold_permission=None,
+                                 uncertain=False,
                                  target=owner, owner_history=history)
                 # A new actor between checks must not receive the old actor's send.
                 real_call = self.bridge.call

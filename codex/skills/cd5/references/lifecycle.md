@@ -10,8 +10,8 @@ create, resume, update, or clear native Goal state, and do not add another
 continuation mechanism. Each HQ retains its five canonical memory files.
 
 The HQ owns its continuation flags and project state. Remove continue_planner when the
-expected work is complete, when a user answer is required, or when quota reaches
-90%. Save a concise checkpoint and finish the turn at that boundary; do not poll,
+expected work is complete or a user answer is required. At quota>=90 preserve
+continue_planner, save a concise checkpoint and finish the turn; do not poll,
 sleep, or launch a successor to wait out quota. Preserve STOP, protocol, budgets,
 owner, and other HQs' memory. Never change another HQ's flags or native Goal
 history.
@@ -25,8 +25,8 @@ At the start and before each substantive stage, read project instructions, OUTLI
 
 An explicit user STOP remains in force until the user resumes it. Turning CD5 off pauses CD5 activity; it does not erase the goal, change STOP, or alter MAC. Turning CD5 on resumes only within existing scope and authorization. A workflow or memory change never authorizes a new run.
 
-For CD5 off, save CHECKPOINT.cd5.enabled=false and remove continue_planner Planner; leave
-Stop Planner intact. CD5 on saves enabled=true but does not clear Stop or create
+For CD5 off, save CHECKPOINT.cd5.enabled=false and remove continue_planner; leave
+stop_planner intact. CD5 on saves enabled=true but does not clear Stop or create
 Continue automatically. Only explicit user Continue Planner reopens continuation.
 Do not restore legacy wakeups or create a second driver. CD5 status reports the
 actual flags, owner, next action and shared service state; unknown remains unknown.
@@ -57,7 +57,8 @@ normal admission before execution; selection itself grants no run permission.
 STOP, quota and actual unknown activity remain controlling. Pause for a human
 answer only when it is required for all remaining useful permitted work. Keep
 continue_planner active at ordinary useful-work boundaries when permitted work remains.
-Remove it when a user decision is required or admission is closed; after STOP or
-quota recovery, an explicit user Continue Planner must reopen it.
+Remove it when a user decision is required or all authorized work is complete.
+Quota closure preserves it; the existing service automatically resumes once fresh
+quota is below90. Only a manual Stop requires a new explicit Continue Planner.
 
 Before advancing the plan, follow [outline](outline.md). After accepted significant results or scope changes, reconcile affected risks, dependencies, milestone outcomes and the active plan; a completed CU does not itself close a milestone. Preserve earlier criteria and outcomes as history.

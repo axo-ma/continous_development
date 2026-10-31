@@ -60,13 +60,35 @@ class FileContinuationTests(unittest.TestCase):
         self.assertEqual(self.service.tick()['reason'], 'trial_limit_reached')
         self.assertEqual(self.sends, 3)
 
-    def test_quota_closure_does_not_auto_recover(self):
+    def test_quota_gate_preserves_permission_and_automatically_reopens(self):
         user_command(self.root, 'continue')
+        before=(self.root/'continue_planner').stat().st_mtime_ns
         self.used = 90
         self.assertEqual(self.service.tick()['reason'], 'quota_closed')
-        self.used = 0
-        self.assertEqual(self.service.tick()['reason'], 'quota_closed_wait_for_explicit_permission')
+        self.used = 100
+        self.assertEqual(self.service.tick()['reason'], 'quota_closed')
         self.assertEqual(self.sends, 0)
+        self.assertEqual((self.root/'continue_planner').stat().st_mtime_ns,before)
+        self.used = 0
+        self.assertEqual(self.service.tick()['reason'], 'sent')
+        self.assertEqual(self.sends, 1)
+
+    def test_manual_stop_during_quota_pause_survives_reset_and_restart(self):
+        user_command(self.root, 'continue')
+        self.used=90
+        self.service.tick()
+        user_command(self.root,'stop')
+        self.used=0
+        other=FileService(self.config,self,dict(self.service.status))
+        self.assertEqual(other.tick()['reason'],'stopped')
+        self.assertEqual(self.sends, 0)
+
+    def test_old_sticky_quota_state_does_not_require_new_continue(self):
+        user_command(self.root,'continue')
+        saved=dict(self.service.status,quota_hold_permission=(self.root/'continue_planner').stat().st_mtime_ns)
+        other=FileService(self.config,self,saved)
+        self.assertEqual(other.tick()['reason'],'sent')
+        self.assertNotIn('quota_hold_permission',other.status)
 
     def test_session_continues_beyond_trial_limit_until_stop(self):
         config = dict(self.config, mode='session', session_authorized=True, limit=None)

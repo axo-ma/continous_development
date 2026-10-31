@@ -10,6 +10,8 @@ canonical memory. CD5's shared Continuator and Stop Planner / Continue Planner a
 only continuation mechanism there; primary and delegated agents must not add
 native agent Goals or competing wakeups as CD5 drivers. MAC remains independent
 and never changes CD5 continuation flags merely because delegation is enabled.
+Quota>=90 is a temporary service gate: preserve continue_planner, finish the model
+turn, and let the single Continuator resume automatically when fresh quota<90.
 
 Use MAC when the user invokes a MAC command or a useful separable task makes delegation worthwhile. The primary remains the current chat and owns scope, coordination, integration, and consequential decisions. Avoid delegation when the task is too small to benefit.
 

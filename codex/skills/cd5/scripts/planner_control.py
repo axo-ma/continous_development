@@ -38,7 +38,16 @@ def atomic(path, value):
             json.dump(value, stream, ensure_ascii=False, indent=2)
             stream.flush()
             os.fsync(stream.fileno())
-        os.replace(temporary, path)
+        # Windows readers/indexers can briefly deny replacement of a status file.
+        # Keep the old durable state until replacement succeeds; never drop it.
+        for attempt in range(5):
+            try:
+                os.replace(temporary, path)
+                break
+            except PermissionError:
+                if attempt == 4:
+                    raise
+                time.sleep(.01 * (attempt + 1))
     finally:
         if os.path.exists(temporary):
             os.unlink(temporary)
