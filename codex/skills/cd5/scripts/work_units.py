@@ -155,6 +155,39 @@ def _annotate(data, rates):
         known = _sum(c['known_value'] for c in costs)
         total = _cost(None, 'partial' if known is not None else 'unknown', known, rates,
                       ['incomplete_selection' if costs else 'no_recorded_units'])
+    accounting=out.get('accounting')
+    if isinstance(accounting,dict):
+        unique={}
+        for event in accounting.get('events',[]):
+            key=event['source_key']
+            if key in unique and unique[key]!=event:
+                raise ValueError('conflicting duplicate source cost key')
+            unique[key]=event
+        accounting['events']=[unique[k] for k in sorted(unique)]
+        for event in accounting['events']:
+            event['work_units']=price_usage(event.get('model'),event.get('usage'),
+                coverage=event.get('coverage','unknown'),rates=rates)
+        def ledger_total(events, empty_zero=True):
+            if not events:
+                return _cost(_decimal('0') if empty_zero else None,'complete' if empty_zero else 'unknown',
+                             _decimal('0') if empty_zero else None,rates,[] if empty_zero else ['no_verified_source_events'])
+            safe=[e for e in events if e.get('exclusive_scope') is True]
+            complete=len(safe)==len(events) and all(e['work_units']['status']=='complete' for e in safe)
+            known=_sum(e['work_units']['known_value'] for e in safe)
+            return _cost(known if complete else None,'complete' if complete else ('partial' if known is not None else 'unknown'),known,rates,
+                         [] if complete else ['missing_source_measurement_or_independent_scope'])
+        rows=accounting['events']
+        accounting['totals']=dict(project=ledger_total(rows,False),
+            allocated=ledger_total([e for e in rows if e.get('cu_id') is not None]),
+            unallocated=ledger_total([e for e in rows if e.get('cu_id') is None]))
+        total=accounting['totals']['project']
+        if accounting.get('manual_units_requiring_reconciliation'):
+            # Manual rows stay visible on their CUs. Their overlap with the native
+            # source ledger is not proven, so never add them a second time.
+            total=_cost(None,'partial' if total.get('known_value') is not None else 'unknown',
+                _decimal(total['known_value']) if total.get('known_value') is not None else None,
+                rates,['manual_and_native_source_overlap_not_reconciled'])
+            accounting['totals']['project']=total
     out['work_units'] = {k: deepcopy(rates[k]) for k in ('unit', 'name', 'basis_usd', 'rate_date', 'basis', 'source_url')}
     out['work_units'].update(total=total, excluded_adjustments=rates.get('excluded_adjustments', []),
                              subscription_note=rates.get('subscription_note', ''),

@@ -144,6 +144,20 @@ def _agent_result(session, turn, observed_position):
 
 def _selection(data, sessions):
     selected, rejected = [], []
+    if isinstance(data.get('accounting'),dict):
+        # Financial allocation and observed quota windows are separate. An
+        # unallocated source turn still consumed quota, exactly once.
+        units=[]
+        seen=set()
+        for event in sorted(data['accounting'].get('events',[]),key=lambda e:(
+                e['thread_id'],e['provenance']['turns'][0]['start_position'])):
+            if event['source_key'] in seen:continue
+            seen.add(event['source_key'])
+            units.append(dict(cu_id=event.get('cu_id'),title='Не распределено' if event.get('cu_id') is None else event['cu_id'],
+                participants=[dict(thread_id=event['thread_id'],role=event['role'],name=event['name'],model=event['model'],
+                    exclusive_scope=event['exclusive_scope'],telemetry_diagnostics=event['diagnostics'],
+                    telemetry_provenance=event['provenance'])]))
+        return _selection({'units':units},sessions)
     for unit in data.get('units', []):
         for person in unit.get('participants', []):
             identity = person.get('thread_id') or person.get('participant_id')
@@ -311,6 +325,9 @@ def build_quota_usage(root, data, events=None, rate_path=None):
     units, claims, _ = native._claims(events, sessions)
     selected, rejected = _selection(data, sessions)
     result['diagnostics'].extend(rejected)
+    if isinstance(data.get('accounting'),dict) and any(e.get('cu_id') is None for e in data['accounting'].get('events',[])):
+        result['diagnostics'].append({'diagnostics':['cu_assignment_unallocated'],
+            'explanation':'Часть измеренных затрат не назначена работам; наблюдения квоты сохранены отдельно.'})
     # Detect duplicate actor-turn claims even when the report selection omitted
     # another CU: ascend verified ancestry into every canonical owner selection.
     def claimants(session, turn):
@@ -332,7 +349,7 @@ def build_quota_usage(root, data, events=None, rate_path=None):
     for unit, person, session, turn, baseline, snapshots in selected:
         cu = unit['cu_id']; identity = session['meta']['id']
         owners = claimants(session, turn)
-        if cu not in owners or owners - {cu}:
+        if 'accounting' not in data and (cu not in owners or owners - {cu}):
             result['diagnostics'].append({'cu_id': cu, 'thread_id': identity, 'turn_id': turn['id'],
                                           'diagnostics': ['ambiguous_turn_claim' if owners else 'canonical_cu_claim_unverified']})
             continue

@@ -28,7 +28,7 @@ The former native Goal instructions in [native-goal.md](references/native-goal.m
 are retained as historical evidence only. Installation never creates a Goal,
 starts work, enrolls an HQ, or enables a schedule.
 
-For ordinary CU accounting, use [automatic usage](references/automatic-usage.md): capture short begin/finish marks and let code derive factual journal usage at report time. Do not routinely prepare manual telemetry mappings or generate separate accounting narratives.
+For ordinary CU accounting, use [automatic usage](references/automatic-usage.md): bind each actual owner turn once to its CU, retain worker assignment boundaries, and let code derive factual journal usage at report time. Do not routinely prepare manual telemetry mappings or generate separate accounting narratives.
 
 When planning or delegating a CU, use [WU budgets](references/wu-budgets.md) for a mandatory numeric prospective forecast range for the entire team (use a wider justified range when uncertain), an independently authorized optional limit, executor guidance and comparison with measured actuals. Keep original forecasts and revisions distinct; the Progress Report shows plan and actual, with missing data explained; limits remain in underlying history.
 

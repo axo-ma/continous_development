@@ -5,6 +5,7 @@ import argparse
 import datetime as dt
 import hashlib
 import json
+import re
 from pathlib import Path
 
 try:
@@ -87,13 +88,32 @@ def _person(value):
 def _units(rows):
     units = {}
     task_links = {}
+    explicit = {}
+    for row in rows:
+        p = row['payload']
+        value = p.get('cu_number')
+        if value:
+            if not isinstance(value,str) or not re.fullmatch(r'З-\d{3,}',value):
+                raise ValueError('persistent CU number must be З-001 or greater')
+            if p['cu_id'] in explicit and explicit[p['cu_id']] != value:
+                raise ValueError('persistent CU number cannot change')
+            explicit[p['cu_id']] = value
+    if len(set(explicit.values())) != len(explicit):
+        raise ValueError('persistent CU numbers must be unique')
+    reserved = set(explicit.values())
+    fallback = 1
     for row in rows:
         p = row['payload']; key = p['cu_id']; action = p['action']; stamp = p['at']
         if action == 'open':
             if key in units:
                 raise ValueError('duplicate Control Unit open event: '+key)
             owner = p.get('owner') or _person({'thread_id': row['provenance']['caller_thread_id'], 'name': 'Штаб', 'role': 'hq'})
-            units[key] = {'cu_id': key, 'title': p['title'], 'goal': p['goal'],
+            if key not in explicit:
+                while f'З-{fallback:03d}' in reserved: fallback += 1
+                number = f'З-{fallback:03d}'; reserved.add(number); fallback += 1
+            else:
+                number = explicit[key]
+            units[key] = {'cu_id': key, 'cu_number': number, 'catalog_number_persisted': key in explicit, 'title': p['title'], 'goal': p['goal'],
                           'description': p.get('description', ''), 'result': '', 'result_detail': '',
                           'status': 'open', 'started_at': stamp, 'ended_at': None,
                           'milestone_id': p.get('milestone_id'), 'historical': p.get('historical', False),
@@ -152,7 +172,7 @@ def record(root, data, caller_thread_id):
     root = pm._base(root); _owner(root, caller_thread_id)
     cu_id = pm._safe_id(data.get('cu_id')); event_id = pm._safe_id(data.get('event_id'))
     action = data.get('action')
-    if action not in {'open', 'status', 'participant', 'link_task', 'budget'}:
+    if action not in {'open', 'status', 'participant', 'link_task', 'budget', 'bind_turn', 'allocation', 'catalog_number', 'assignment'}:
         raise ValueError('action must be open, status, participant, link_task or budget')
     payload = {'type': 'control_unit_event', 'action': action, 'cu_id': cu_id}
     def budget_patch():
@@ -202,6 +222,26 @@ def record(root, data, caller_thread_id):
             person = {**person, 'parent_thread_id': parent,
                       'thread_id': resolve_agent_identity(root, person['agent_path'], parent)}
         payload['participant'] = _person(person)
+    elif action == 'bind_turn':
+        pass
+    elif action == 'catalog_number':
+        payload['cu_number'] = _text(data.get('cu_number'), 'persistent CU number', True, 32)
+    elif action == 'allocation':
+        try:
+            from .cu_attribution_api import validate_allocation
+        except ImportError:
+            from cu_attribution_api import validate_allocation
+        payload.update(turn_anchor=validate_allocation(root,data,_events(root)),
+                       allocated=data.get('allocated',True),reason=data['reason'],supports=data['supports'])
+        if type(payload['allocated']) is not bool: raise ValueError('allocated must be boolean')
+    elif action == 'assignment':
+        try:
+            from .cu_attribution_api import validate_assignment
+        except ImportError:
+            from cu_attribution_api import validate_assignment
+        payload['assignment'] = validate_assignment(root,data['assignment'],cu_id,_events(root))
+        _text(data.get('reason'),'assignment reason',True,4096)
+        payload['reason'] = data['reason']
     elif action == 'budget':
         _text(data.get('reason'), 'budget revision reason', True, 4096)
         payload['budget'] = budget_patch()
@@ -227,12 +267,32 @@ def _append(root, payload, event_id, at, caller):
         if not old and not historical and payload['action'] == 'open':
             if not payload.get('budget', {}).get('forecast'):
                 raise ValueError('new CU requires a numeric whole-team forecast range: --forecast-low and --forecast-high; uncertainty requires a wider justified range, not forecast_unknown_reason; no WU limit is required')
-        existing_unit = _units(rows).get(payload['cu_id'], {})
+        existing_units = _units(rows)
+        existing_unit = existing_units.get(payload['cu_id'], {})
+        if old:
+            for retained in ('cu_number','assignment','previous_assignment_events'):
+                if retained in old['payload']:
+                    payload[retained] = old['payload'][retained]
+        if not old and payload['action'] == 'open':
+            used = {u['cu_number'] for u in existing_units.values()}
+            number = 1
+            while f'З-{number:03d}' in used: number += 1
+            payload['cu_number'] = f'З-{number:03d}'
+        if payload['action'] == 'participant' and not old:
+            try:
+                from .cu_attribution_api import assignment_for_participant
+            except ImportError:
+                from cu_attribution_api import assignment_for_participant
+            try:
+                assignment = assignment_for_participant(root,payload['participant'],payload['cu_id'],rows)
+            except (ValueError,OSError,KeyError,TypeError):
+                assignment = None
+            if assignment: payload['assignment'] = assignment
         if not old and payload['action'] == 'budget':
             patch = payload.get('budget', {})
             if ('forecast' in patch and patch['forecast'] is None) or payload.get('forecast_unknown_reason'):
                 raise ValueError('active work requires a numeric whole-team forecast; revise the range instead of clearing it')
-        if payload['action'] in {'open', 'status'} and not historical:
+        if payload['action'] in {'open', 'status', 'bind_turn'} and not historical:
             if old:
                 if 'auto_anchor' in old['payload']:
                     payload['auto_anchor'] = old['payload']['auto_anchor']
@@ -243,7 +303,7 @@ def _append(root, payload, event_id, at, caller):
                     from cu_auto_telemetry import capture_anchor
                 anchor = capture_anchor(root, caller)
                 if anchor is not None:
-                    if payload['action'] == 'open' or payload.get('status') == 'open':
+                    if payload['action'] in {'open','bind_turn'} or payload.get('status') == 'open':
                         conflicts = sorted({r['payload']['cu_id'] for r in rows
                             if r['payload']['cu_id'] != payload['cu_id']
                             and isinstance(r['payload'].get('auto_anchor'), dict)
@@ -253,6 +313,15 @@ def _append(root, payload, event_id, at, caller):
                             raise ValueError('this owner turn already belongs to CU '+', '.join(conflicts)+
                                 '; continue that CU or begin the next CU in a new user turn so factual usage can be attributed')
                     payload['auto_anchor'] = anchor
+                elif payload['action'] == 'bind_turn':
+                    raise ValueError('cannot bind a turn without a verified current native anchor')
+        if payload['action'] == 'allocation' and not old:
+            anchor=payload['turn_anchor']
+            payload['previous_assignment_events']=[r['id'] for r in rows if any(
+                isinstance(r['payload'].get(field),dict)
+                and r['payload'][field].get('thread_id')==anchor['thread_id']
+                and r['payload'][field].get('turn_id')==anchor['turn_id']
+                for field in ('auto_anchor','turn_anchor'))]
         payload = {**payload, 'at': _stamp(at or (old['payload']['at'] if old else None)),
                    'sequence': old['payload']['sequence'] if old else max((r['payload'].get('sequence', 0) for r in rows), default=0)+1}
         row = {'schema_version': 1, 'id': record_id, 'kind': 'artifact',
@@ -361,7 +430,7 @@ def _report_unit(u):
     usage = {k: sum(p['usage'][k] for p in participants) if complete_team else None for k in FIELDS}
     end = dt.datetime.fromisoformat(u['ended_at']) if u['ended_at'] else dt.datetime.now(dt.timezone.utc)
     elapsed = max(0, round((end-dt.datetime.fromisoformat(u['started_at'])).total_seconds()*1000))
-    return {k: u[k] for k in ('cu_id', 'title', 'goal', 'description', 'result', 'result_detail',
+    return {k: u[k] for k in ('cu_id', 'cu_number', 'catalog_number_persisted', 'title', 'goal', 'description', 'result', 'result_detail',
                               'status', 'started_at', 'ended_at', 'milestone_id', 'historical', 'sources', 'task_ids', 'budget')} | {
         'participants': participants, 'usage': usage,
         'usage_status': 'complete' if complete_team else ('partial' if any(p['coverage'] != 'unknown' for p in participants) else 'unknown'),
@@ -422,6 +491,10 @@ def main(argv=None):
     participant.add_argument('--role', required=True, choices=sorted(ROLES)); participant.add_argument('--name')
     collect = sub.add_parser('collect'); collect.add_argument('--cu', required=True); collect.add_argument('--mapping', required=True)
     collect.add_argument('--event-id', required=True); collect.add_argument('--caller-thread', required=True); collect.add_argument('--exclusive-scope-evidence')
+    bind = sub.add_parser('bind',help='Bind this actual owner turn to one CU; does not reopen work')
+    bind.add_argument('--cu',required=True);bind.add_argument('--caller-thread',required=True)
+    catalog = sub.add_parser('catalog',help='Persist missing catalogue numbers once')
+    catalog.add_argument('--caller-thread',required=True)
     read = sub.add_parser('summary'); read.add_argument('--limit', type=int, default=10); read.add_argument('--all', action='store_true', dest='all_units')
     read.add_argument('--since'); read.add_argument('--until')
     args = parser.parse_args(argv)
@@ -455,6 +528,24 @@ def main(argv=None):
             saved = record(args.root, data, args.caller_thread)
             out = {'cu_id': args.cu, 'action': saved['payload']['action'],
                    'usage_anchor_captured': bool(saved['payload'].get('auto_anchor'))}
+        elif args.command == 'bind':
+            try:
+                from .cu_auto_telemetry import capture_anchor
+            except ImportError:
+                from cu_auto_telemetry import capture_anchor
+            anchor=capture_anchor(args.root,args.caller_thread)
+            if anchor is None: raise ValueError('actual current owner turn unavailable')
+            saved=record(args.root,dict(action='bind_turn',cu_id=args.cu,
+                event_id='bind-'+anchor['turn_id']),args.caller_thread)
+            out={'cu_id':args.cu,'turn_id':anchor['turn_id'],'bound':True}
+        elif args.command == 'catalog':
+            changed=[]
+            for unit in _units(_events(args.root)).values():
+                if not unit['catalog_number_persisted']:
+                    record(args.root,dict(action='catalog_number',cu_id=unit['cu_id'],
+                        cu_number=unit['cu_number'],event_id='catalog-'+unit['cu_id']),args.caller_thread)
+                    changed.append(unit['cu_id'])
+            out={'numbers_persisted':len(changed)}
         elif args.command == 'participant':
             if not args.thread and not args.agent_path:
                 raise ValueError('participant requires --agent-path or --thread')
@@ -465,7 +556,23 @@ def main(argv=None):
             event_id = 'participant-'+args.cu+'-'+hashlib.sha256(identity.encode()).hexdigest()[:24]
             saved = record(args.root, {'action':'participant','cu_id':args.cu,'event_id':event_id,
                                       'participant':person}, args.caller_thread)
-            out = {'cu_id':args.cu,'action':'participant','participant':saved['payload']['participant']}
+            assignment=saved['payload'].get('assignment')
+            pending=None
+            if not assignment:
+                try:
+                    try:
+                        from .cu_attribution_api import assignment_for_participant
+                    except ImportError:
+                        from cu_attribution_api import assignment_for_participant
+                    assignment=assignment_for_participant(args.root,saved['payload']['participant'],args.cu,_events(args.root))
+                    if assignment:
+                        record(args.root,dict(action='assignment',cu_id=args.cu,assignment=assignment,
+                            reason='Verified native assignment after participant registration',
+                            event_id='assignment-'+assignment['assignment_id']),args.caller_thread)
+                except (ValueError,OSError,KeyError,TypeError) as exc:
+                    pending=str(exc)
+            out = {'cu_id':args.cu,'action':'participant','participant':saved['payload']['participant'],
+                   'assignment_bound':bool(assignment),'assignment_pending_reason':pending}
         elif args.command == 'budget':
             saved = record(args.root, {'action':'budget', 'cu_id':args.cu, 'event_id':args.event_id,
                                        'reason':args.reason, **fields}, args.caller_thread)

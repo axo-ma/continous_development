@@ -123,7 +123,10 @@ class QuotaUsageTests(unittest.TestCase):
     def test_shared_turn_reset_or_model_mix_not_allocated(self):
         file=self.session(rows=[counter(100,0),*self.turn()]);events=self.marks(file,'a')+self.marks(file,'b')
         result=build_quota_usage(self.root,self.report(events),events)
-        self.assertEqual(result['windows'],[]);self.assertTrue(result['diagnostics'])
+        # Ambiguous CU ownership does not erase measured quota consumption.
+        self.assertEqual(len(result['windows']),1);self.assertTrue(result['diagnostics'])
+        self.assertTrue(all(r['cu_id'] is None for r in result['windows'][0]['assignments']))
+        self.assertEqual(sum(r['request_count'] for r in result['windows'][0]['assignments']),2)
         file=self.session(rows=[counter(200,0),*self.turn()])
         self.assertEqual(self.run_report(file)['windows'],[])
 

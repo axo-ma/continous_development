@@ -197,50 +197,11 @@ def _anchor(row, sessions):
 
 
 def _claims(events, sessions):
-    units, claims, registered = {}, {}, {}
-    for row in sorted(events, key=lambda r: r.get('payload', {}).get('sequence', 0)):
-        p = row.get('payload', {})
-        if p.get('type') != 'control_unit_event':
-            continue
-        cu, action = p['cu_id'], p['action']
-        u = units.setdefault(cu, {'selected': set(), 'diagnostics': [], 'active': None, 'manual': False, 'people': {}})
-        if action == 'measurement':
-            u['manual'] = True
-        if action == 'participant':
-            person = p['participant']; identity = person.get('thread_id') or person.get('participant_id')
-            u['people'][identity] = person
-            registered.setdefault(identity, set()).add(cu)
-        if action not in ('open', 'status'):
-            continue
-        point = _anchor(row, sessions)
-        if action == 'open':
-            owner = p.get('owner') or {'thread_id': row.get('provenance', {}).get('caller_thread_id'), 'name': 'Штаб', 'role': 'hq'}
-            identity = owner.get('thread_id') or owner.get('participant_id')
-            u['people'][identity] = owner
-            if not point or identity != point[0] or p.get('historical'):
-                u['diagnostics'].append('missing_or_unverified_open_anchor')
-            else:
-                u['active'] = point
-            continue
-        state = p.get('status')
-        if u['active'] and state in ('paused', 'completed', 'cancelled'):
-            start = u['active']
-            if point and point[0] == start[0] and point[1] >= start[1]:
-                u['selected'].update((start[0], i) for i in range(start[1], point[1] + 1))
-            else:
-                u['diagnostics'].append('missing_or_unverified_close_anchor')
-            u['active'] = None
-        elif state == 'open' and u['active'] is None:
-            if point:
-                u['active'] = point
-            else:
-                u['diagnostics'].append('missing_or_unverified_resume_anchor')
-    for cu, u in units.items():
-        if u['active']:
-            thread, first = u['active']
-            u['selected'].update((thread, i) for i in range(first, len(sessions[thread]['turns'])))
-        for key in u['selected']:
-            claims.setdefault(key, set()).add(cu)
+    try:
+        from .cu_cost_ledger import exact_claims
+    except ImportError:
+        from cu_cost_ledger import exact_claims
+    units, claims, registered, _ = exact_claims(events, sessions, _anchor)
     return units, claims, registered
 
 
@@ -412,6 +373,11 @@ def _sessions(root, settings, events):
     headers = {identity: h['payload'] for identity, h in headers.items() if h}
     eligible = {r.get('payload', {}).get('auto_anchor', {}).get('thread_id') for r in events
                 if isinstance(r.get('payload', {}).get('auto_anchor'), dict)} & headers.keys()
+    eligible.update(r.get('payload', {}).get('turn_anchor', {}).get('thread_id') for r in events
+                    if isinstance(r.get('payload', {}).get('turn_anchor'), dict))
+    eligible.update(r.get('payload', {}).get('participant', {}).get('thread_id') for r in events
+                    if isinstance(r.get('payload', {}).get('participant'), dict))
+    eligible.intersection_update(headers.keys())
     related = set(eligible)
     changed = True
     while changed:
@@ -442,90 +408,24 @@ def _sessions(root, settings, events):
 
 
 def enrich_report(root, data, events):
-    """Derive only from stored anchors; never append evidence or modify STOP."""
-    out = deepcopy(data); settings = _settings(root)
-    if settings.get('enabled') is False or not any(r.get('payload', {}).get('auto_anchor') for r in events):
-        return out
+    """Pure unique source-turn ledger; never infer ownership from CU lifetime."""
+    settings = _settings(root)
+    if settings.get('enabled') is False or not any(r.get('payload', {}).get('auto_anchor') or r.get('payload', {}).get('turn_anchor') for r in events):
+        return deepcopy(data)
     sessions = _sessions(root, settings, events)
-    units, claims, registered = _claims(events, sessions)
-    registered = _resolve_registered_people(units, sessions)
     independent = False
     evidence = settings.get('independent_scope_evidence')
     if evidence:
         try:
             independent = bool(pm.select(root, 'evidence', [evidence], full=True))
         except (ValueError, OSError, pm.MemoryError):
-            independent = False
-    for unit in out.get('units', []):
-        u = units.get(unit['cu_id'])
-        if not u or u['manual'] or any(p.get('coverage') not in (None, 'unknown') for p in unit.get('participants', [])):
-            continue
-        notes = list(u['diagnostics']); participants, children = [], set()
-        request_scopes = {}
-        by_thread = {}
-        for thread, index in u['selected']:
-            by_thread.setdefault(thread, set()).add(index)
-        visited = set(by_thread)
-        def descend(thread, indices, parent_notes, depth=0):
-            parent_turns = [sessions[thread]['turns'][i] for i in indices]
-            for identity, session in sessions.items():
-                if identity == thread or identity in visited:
-                    continue
-                if not _child(session, thread, parent_turns):
-                    child_time = _stamp(session['meta'].get('timestamp'))
-                    in_span = any(_within(child_time, t) for t in parent_turns)
-                    if session['meta'].get('parent_thread_id') == thread and (identity in u['people'] or in_span):
-                        children.add(identity); notes.append('child_ancestry_or_spawn_not_verified')
-                    continue
-                children.add(identity); visited.add(identity)
-                if depth >= 2:
-                    notes.append('descendant_depth_not_verified'); continue
-                spawn = _spawn(session['meta'])
-                role, name = spawn.get('agent_role'), spawn.get('agent_nickname') or session['meta'].get('agent_nickname')
-                discovered = {'role': role if isinstance(role, str) and role.strip() else 'роль не указана',
-                              'name': name if isinstance(name, str) and name.strip() else identity}
-                person = u['people'].get(identity, discovered)
-                child_notes = []
-                if identity not in u['people']:
-                    child_notes.append('unregistered_discovered_child')
-                if parent_notes:
-                    child_notes.append('ambiguous_parent_turn_claim')
-                if registered.get(identity, set()) - {unit['cu_id']}:
-                    child_notes.append('child_reused_across_control_units')
-                chosen = {i for i, turn in enumerate(session['turns']) if any(
-                    _within(_stamp(turn['start'].get('timestamp')), parent) for parent in parent_turns)}
-                # Attribution follows the verified start of the assignment.
-                # A parent may end its turn while its helper is still working;
-                # the child's measured completion must not erase that expense.
-                participants.append(_measure(session, chosen, person, child_notes))
-                request_scopes[identity] = _request_scoped(session, chosen)
-                descend(identity, chosen, [n for n in child_notes if n != 'unregistered_discovered_child'], depth + 1)
-        for thread, indices in sorted(by_thread.items()):
-            hq_notes = ['ambiguous_turn_claim'] if any(len(claims[(thread, i)]) > 1 for i in indices) else []
-            participants.append(_measure(sessions[thread], indices, u['people'].get(thread, {'role': 'hq', 'name': 'Штаб'}), hq_notes))
-            request_scopes[thread] = _request_scoped(sessions[thread], indices)
-            descend(thread, indices, hq_notes)
-        missing = set(u['people']) - set(by_thread) - children
-        if missing:
-            notes.append('registered_participant_not_verified')
-            children.update(identity for identity in missing if u['people'][identity].get('role') != 'hq')
-            for identity in sorted(missing):
-                participants.append({**deepcopy(u['people'][identity]), 'participant_id': identity,
-                                     'usage': dict.fromkeys(FIELDS), 'coverage': 'unknown', 'elapsed_ms': None,
-                                     'exclusive_scope': False, 'telemetry_diagnostics': ['no_verified_turns']})
-        verified_scope = independent or (bool(participants) and all(request_scopes.get(p['thread_id']) for p in participants))
-        if children and not verified_scope:
-            notes.append('parent_child_scope_not_verified')
-        complete = bool(participants) and not notes and all(p['coverage'] == 'complete' for p in participants)
-        for person in participants:
-            person['exclusive_scope'] = not children or independent or request_scopes.get(person['thread_id'], False)
-            if request_scopes.get(person['thread_id']):
-                person['telemetry_provenance']['scope_method'] = 'native_local_response_deltas_match_cumulative_advances'
-        unit['participants'] = participants
-        unit['usage'] = {key: sum(p['usage'][key] for p in participants) if complete else None for key in FIELDS}
-        unit['usage_status'] = 'complete' if complete else ('partial' if by_thread else 'unknown')
-        headquarters = [p for p in participants if p.get('role') == 'hq']
-        unit['reported_ms'] = sum(p['elapsed_ms'] for p in headquarters) if headquarters and all(p['elapsed_ms'] is not None for p in headquarters) else None
-        unit['telemetry_diagnostics'] = sorted(set(notes))
-        unit['telemetry_provenance'] = {'method': 'read_only_anchor_derivation', 'independent_scope_evidence': evidence if independent else None}
-    return out
+            pass
+    try:
+        from .cu_cost_ledger import build, apply
+    except ImportError:
+        from cu_cost_ledger import build, apply
+    import sys
+    ledger=build(events, sessions, sys.modules[__name__], independent)
+    if ledger['units'] and all(u['manual'] for u in ledger['units'].values()):
+        return deepcopy(data)
+    return apply(data, ledger)
