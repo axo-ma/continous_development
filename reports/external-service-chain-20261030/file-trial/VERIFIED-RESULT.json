@@ -1,0 +1,34 @@
+{
+  "observed_at": 1793376873.8182914,
+  "useful_continuation": "STEP1-VERIFIED.json",
+  "automatic_messages": 2,
+  "independent_limit": 3,
+  "manual_interrupt_turn": "01a18d96-6ed3-7d50-8403-6bd573e01185",
+  "manual_interrupt_status": "interrupted",
+  "stop_file_created": true,
+  "both_flags": {
+    "used": 2,
+    "waiting": true,
+    "before_turn": "01a18d96-608b-7c50-aa4d-eabaa7cab212",
+    "uncertain": false,
+    "quota_hold_permission": null,
+    "reason": "stopped",
+    "observed_at": 1793376853.4559042
+  },
+  "after_service_restart": {
+    "used": 2,
+    "waiting": true,
+    "before_turn": "01a18d96-608b-7c50-aa4d-eabaa7cab212",
+    "uncertain": false,
+    "quota_hold_permission": null,
+    "reason": "stopped",
+    "observed_at": 1793376855.8342805
+  },
+  "service_running": false,
+  "permanent_enabled": false,
+  "limits": [
+    "Desktop/computer restart not tested",
+    "Stop Goal alone does not interrupt an already running turn; native Stop button does",
+    "quota reset recovery not implemented"
+  ]
+}

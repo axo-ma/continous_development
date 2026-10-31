@@ -7,6 +7,11 @@ metadata:
 
 # CD5
 
+For an explicitly user-selected two-file continuation service, read
+[Stop Goal / Continue Goal](references/file-continuation.md). That choice replaces
+native Goal for the selected HQ; do not create/resume a native Goal or run two
+drivers there. Installation alone never selects or starts either mechanism.
+
 For ordinary continuous HQ work, first read [Native Goal](references/native-goal.md).
 Use the application's actual Goal when explicitly authorized by the user,
 including a standing instruction to set a Goal when launching their HQ. OUTLINE

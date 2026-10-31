@@ -1,0 +1,24 @@
+{
+  "observed_at": 1793376768.0660284,
+  "useful_step_verified": true,
+  "sha256": "4326d3fcea2cd60a5156fcb1a78a75c4a97a6b5083d20c6ce78a524e93d0ffbb",
+  "step": {
+    "testsRun": 15,
+    "failures": 0,
+    "errors": 0,
+    "successful": true,
+    "sha256": "4326D3FCEA2CD60A5156FCB1A78A75C4A97A6B5083D20C6CE78A524E93D0FFBB"
+  },
+  "service_status": {
+    "used": 1,
+    "waiting": true,
+    "before_turn": "01a18d95-1b0a-73b0-886f-4eb18b90cc21",
+    "uncertain": false,
+    "quota_hold_permission": null,
+    "reason": "idle",
+    "observed_at": 1793376767.2194269
+  },
+  "technical_turn": "01a18d95-2964-7d22-b2a4-c0f0bcfbed5a",
+  "native_stop_test": "pending",
+  "no_native_goal_driver": true
+}

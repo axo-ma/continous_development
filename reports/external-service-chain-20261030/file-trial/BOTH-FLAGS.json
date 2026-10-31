@@ -1,0 +1,9 @@
+{
+  "used": 2,
+  "waiting": true,
+  "before_turn": "01a18d96-608b-7c50-aa4d-eabaa7cab212",
+  "uncertain": false,
+  "quota_hold_permission": null,
+  "reason": "stopped",
+  "observed_at": 1793376853.4559042
+}
