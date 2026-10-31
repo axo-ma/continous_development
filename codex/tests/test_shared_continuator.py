@@ -46,13 +46,18 @@ class SharedTests(unittest.TestCase):
         self.sends.append((self.caller,args['threadId']))
         return dict(threadId=args['threadId'])
 
+    def test_production_message_is_only_continue(self):
+        from tools.shared_continuator import current_project
+        entry=dict(root=str(self.roots[0]),mac_script='synthetic',model='gpt-6.1-sol',message='obsolete long instructions')
+        self.assertEqual(current_project(entry,self.roots[0])[2]['message'],'Продолжай.')
+
     def test_two_hqs_independent_flags_and_sequential_sends(self):
-        user_command(self.flags(0),'continue')
+        user_command(self.flags(0),'enable'); user_command(self.flags(0),'start')
         user_command(self.flags(1),'stop')
         result = self.service.step()
         self.assertEqual(self.sends,[('owner1','owner1')])
         self.assertEqual(result[1]['reason'],'stopped')
-        user_command(self.flags(1),'continue')
+        user_command(self.flags(1),'enable'); user_command(self.flags(1),'start')
         self.service.step()
         self.assertEqual(self.sends,[('owner1','owner1'),('owner2','owner2')])
         self.service.step()
@@ -60,20 +65,20 @@ class SharedTests(unittest.TestCase):
 
     def test_handoff_routes_service_and_commands_to_current_owner_only(self):
         cp=self.roots[0]/'coordination/cd5/CHECKPOINT.json'
-        user_command(self.flags(0),'continue')
+        user_command(self.flags(0),'enable'); user_command(self.flags(0),'start')
         self.service.step()
         cp.write_text(json.dumps({'owner':{'thread_id':'new-owner'}}),encoding='utf-8')
         self.service.step()
         self.assertEqual(self.sends, [('owner1','owner1'),('new-owner','new-owner')])
         handle(dict(session_id='owner1',hook_event_name='Interrupt'),self.home,{})
-        self.assertFalse((self.flags(0)/'stop_planner').exists())
+        self.assertFalse((self.flags(0)/'suspend_HQ').exists())
         handle(dict(session_id='new-owner',hook_event_name='Interrupt'),self.home,{})
-        self.assertTrue((self.flags(0)/'stop_planner').exists())
+        self.assertTrue((self.flags(0)/'suspend_HQ').exists())
         self.service.step()
         self.assertEqual(len(self.sends),2)
 
     def test_busy_and_quota90_do_not_send(self):
-        for n in range(2): user_command(self.flags(n),'continue')
+        for n in range(2): user_command(self.flags(n),'enable'); user_command(self.flags(n),'start')
         self.busy={'owner1','owner2'}
         self.service.step()
         self.assertEqual(self.sends,[])
@@ -83,14 +88,14 @@ class SharedTests(unittest.TestCase):
         self.assertEqual(self.sends,[])
 
     def test_second_hq_also_follows_its_current_owner(self):
-        user_command(self.flags(1),'continue')
+        user_command(self.flags(1),'enable'); user_command(self.flags(1),'start')
         self.service.step()
         cp=self.roots[1]/'coordination/cd5/CHECKPOINT.json'
         cp.write_text(json.dumps({'owner':{'thread_id':'new-owner'}}),encoding='utf-8')
         self.service.step()
         self.assertEqual(self.sends,[('owner2','owner2'),('new-owner','new-owner')])
         self.assertEqual(handle(dict(session_id='owner2',hook_event_name='Interrupt'),self.home,{}),{})
-        self.assertFalse((self.flags(1)/'stop_planner').exists())
+        self.assertFalse((self.flags(1)/'suspend_HQ').exists())
 
     def test_unenrolled_chat_does_not_touch_any_flags(self):
         self.assertEqual(handle(dict(session_id='unrelated',hook_event_name='UserPromptSubmit',prompt='Continue Planner'),self.home,{}),{})

@@ -46,15 +46,7 @@ def current_project(entry, root):
     return owner, flags, dict(mode='session', session_authorized=True, limit=None,
         target=owner, flags=str(flags), status=str(flags/'SERVICE.json'),
         mac_script=entry['mac_script'], model=entry['model'],
-        message=entry.get('message') or (
-            f'Продолжай ранее разрешённую работу CD5 в {root}. Прочитай текущие '
-            f'OUTLINE и CHECKPOINT. Управление: {flags}. Сначала проверь stop_planner; '
-            f'при наличии не начинай работу. Автоматическое сообщение не разрешает '
-            f'создавать continue_planner или удалять stop_planner. Выполни следующий полезный '
-            f'разрешённый шаг. Перед окончательным завершением или обязательным вопросом '
-            f'удали continue_planner. При квоте>=90 сохрани continue_planner и закончи ход; '
-            f'служба сама дождётся квоты<90 без модели. Промежуточный отчёт не причина '
-            f'останавливать работу. Встроенные Goal агентов не использовать как драйвер CD5.'))
+        message=entry.get('message') if 'trial_limit' in entry else 'Продолжай.')
 
 
 class SharedService:

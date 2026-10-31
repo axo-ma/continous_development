@@ -7,22 +7,19 @@ metadata:
 
 # CD5
 
-Architecture: **CD5 Continuator and Controls**. The user commands are
-Continue Planner / Stop Planner; the controls files are continue_planner / stop_planner.
-
-First read the concise [Continuous Planner contract](references/continuous-planner-contract.md).
-For continuous CD5 work, read [Stop Planner / Continue Planner](references/file-continuation.md).
-One hidden service per user OS login serves multiple explicitly enrolled HQs,
-sequentially. Each HQ keeps its five canonical memory files. The service reads
-only continuation flags, known busy state, and the fresh quota gate, then sends
-one continuation when admitted. The HQ removes continue_planner when its agreed work is
-complete or a user answer is required. Quota>=90 never removes continue_planner;
-the service waits without a model and automatically resumes below90. The service gets
-the current planner chat from `CHECKPOINT.owner.thread_id` each time; never pin it
-to an old chat ID. The CD5 project goal is the agreed tasks and milestones in its
-memory. The application's native agent Goal is not its driver. Do not create,
-resume, update, or clear native Goal state for CD5 continuation, and do not run a
-competing driver. Installation alone never enrolls or starts an HQ.
+Architecture: **CD5 Continuator and Controls**. Read the concise
+[architecture contract](references/continuous-planner-contract.md) first.
+Controls are `continue_HQ` (user-owned Continuator enable choice) and
+`suspend_HQ` (HQ suspension). Only explicit user enable/disable changes
+continue_HQ. HQ start/continue removes suspend_HQ; HQ stop/Interrupt creates it.
+HQ creates suspend_HQ before completion or a required human answer, never removes
+continue_HQ by its own decision. Quota>=90 changes neither file: finish the turn;
+one shared hidden service waits without a model and resumes below90 when admitted.
+The service sends only «Продолжай». Read [continuation](references/file-continuation.md).
+One service per Windows user handles explicitly enrolled HQs sequentially, using
+CHECKPOINT.owner.thread_id. Each HQ keeps its five memory files. Native agent
+Goal is not the CD5 driver; do not create, resume, update or clear it for CD5.
+Installation alone never enrolls, enables or starts an HQ.
 
 The former native Goal instructions in [native-goal.md](references/native-goal.md)
 are retained as historical evidence only. Installation never creates a Goal,

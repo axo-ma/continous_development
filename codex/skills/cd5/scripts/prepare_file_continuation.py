@@ -51,15 +51,7 @@ def prepare(root, thread, server, hooks_file, mac_script, model):
     config = dict(mode='session', session_authorized=True, limit=None, seconds=None,
         native_goal_disabled=True, server=str(server), caller=thread, target=thread,
         flags=str(runtime), status=str(runtime/'SERVICE.json'), mac_script=str(mac_script), model=model,
-        message=(f'Автоматическое продолжение ранее разрешённой работы CD5. Прочитай текущую '
-                 f'память проекта и инструкцию file-continuation.md установленного CD5. '
-                 f'Файлы управления: {runtime}. Сначала проверь Stop Planner: при наличии закончи '
-                 f'без работы. Не создавай Continue Planner и не удаляй Stop Planner из автоматического '
-                 f'сообщения. Если есть разрешённая работа — выполни следующий полезный шаг. '
-                 f'Перед окончательным завершением или обязательным вопросом удали continue_planner. '
-                 f'При квоте>=90 сохрани continue_planner: служба ждёт квоты<90 без модели. '
-                 f'Native Goal не создавай и не возобновляй; сообщения другим чатам без прямого '
-                 f'поручения пользователя не отправляй.'))
+        message='Продолжай.')
     atomic(runtime/'CONFIG.json', config)
     return dict(config=str(runtime/'CONFIG.json'), definition=str(runtime/'hook-definition.json'),
                 flags=str(runtime), frozen_sha256=digest, started=False, trust_changed=False)

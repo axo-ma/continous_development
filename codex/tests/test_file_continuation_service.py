@@ -43,14 +43,14 @@ class FileContinuationTests(unittest.TestCase):
 
     def test_absent_and_stop_never_read_or_send(self):
         self.assertEqual(self.service.tick()['reason'], 'idle')
-        user_command(self.root, 'continue')
+        user_command(self.root,'enable'); user_command(self.root,'start')
         user_command(self.root, 'stop')
         self.assertEqual(permission(self.root), 'stopped')
         self.assertEqual(self.service.tick()['reason'], 'stopped')
         self.assertEqual(self.calls, [])
 
     def test_sequential_wait_and_independent_limit(self):
-        user_command(self.root, 'continue')
+        user_command(self.root,'enable'); user_command(self.root,'start')
         for n in range(3):
             self.assertEqual(self.service.tick()['reason'], 'sent')
             self.assertEqual(self.service.tick()['reason'], 'awaiting_sent_turn_no_duplicate')
@@ -61,20 +61,20 @@ class FileContinuationTests(unittest.TestCase):
         self.assertEqual(self.sends, 3)
 
     def test_quota_gate_preserves_permission_and_automatically_reopens(self):
-        user_command(self.root, 'continue')
-        before=(self.root/'continue_planner').stat().st_mtime_ns
+        user_command(self.root,'enable'); user_command(self.root,'start')
+        before=(self.root/'continue_HQ').stat().st_mtime_ns
         self.used = 90
         self.assertEqual(self.service.tick()['reason'], 'quota_closed')
         self.used = 100
         self.assertEqual(self.service.tick()['reason'], 'quota_closed')
         self.assertEqual(self.sends, 0)
-        self.assertEqual((self.root/'continue_planner').stat().st_mtime_ns,before)
+        self.assertEqual((self.root/'continue_HQ').stat().st_mtime_ns,before)
         self.used = 0
         self.assertEqual(self.service.tick()['reason'], 'sent')
         self.assertEqual(self.sends, 1)
 
     def test_manual_stop_during_quota_pause_survives_reset_and_restart(self):
-        user_command(self.root, 'continue')
+        user_command(self.root,'enable'); user_command(self.root,'start')
         self.used=90
         self.service.tick()
         user_command(self.root,'stop')
@@ -84,8 +84,8 @@ class FileContinuationTests(unittest.TestCase):
         self.assertEqual(self.sends, 0)
 
     def test_old_sticky_quota_state_does_not_require_new_continue(self):
-        user_command(self.root,'continue')
-        saved=dict(self.service.status,quota_hold_permission=(self.root/'continue_planner').stat().st_mtime_ns)
+        user_command(self.root,'enable'); user_command(self.root,'start')
+        saved=dict(self.service.status,quota_hold_permission=(self.root/'continue_HQ').stat().st_mtime_ns)
         other=FileService(self.config,self,saved)
         self.assertEqual(other.tick()['reason'],'sent')
         self.assertNotIn('quota_hold_permission',other.status)
@@ -93,7 +93,7 @@ class FileContinuationTests(unittest.TestCase):
     def test_session_continues_beyond_trial_limit_until_stop(self):
         config = dict(self.config, mode='session', session_authorized=True, limit=None)
         service = FileService(config, self)
-        user_command(self.root, 'continue')
+        user_command(self.root,'enable'); user_command(self.root,'start')
         for n in range(5):
             self.assertEqual(service.tick()['reason'], 'sent')
             self.turn = dict(id=str(n), status='completed')
@@ -101,7 +101,7 @@ class FileContinuationTests(unittest.TestCase):
         self.assertEqual(service.tick()['reason'], 'stopped')
         self.assertEqual(self.sends, 5)
         # Explicit Continue removes Stop, without resetting the send history.
-        user_command(self.root, 'continue')
+        user_command(self.root,'enable'); user_command(self.root,'start')
         self.assertEqual(service.tick()['reason'], 'sent')
         self.assertEqual(service.status['used'], 6)
 
@@ -117,7 +117,7 @@ class FileContinuationTests(unittest.TestCase):
                 FileService(self.config, self, dict(self.service.status, **changes))
 
     def test_stop_arriving_during_quota_read_prevents_send(self):
-        user_command(self.root, 'continue')
+        user_command(self.root,'enable'); user_command(self.root,'start')
         original = self.call
         def stopping(name, args):
             result = original(name, args)
@@ -129,7 +129,7 @@ class FileContinuationTests(unittest.TestCase):
         self.assertEqual(self.sends, 0)
 
     def test_uncertain_send_not_retried_after_reload(self):
-        user_command(self.root, 'continue')
+        user_command(self.root,'enable'); user_command(self.root,'start')
         self.fail = True
         with self.assertRaises(TimeoutError):
             self.service.tick()
@@ -145,10 +145,13 @@ class FileContinuationTests(unittest.TestCase):
         handle(dict(event, hook_event_name='UserPromptSubmit', prompt='Automatic Continue Planner please'), 'test', self.root)
         self.assertEqual(permission(self.root), 'stopped')
         result = handle(dict(event, hook_event_name='UserPromptSubmit', prompt='Continue Planner'), 'test', self.root)
-        self.assertEqual(result['decision'], 'block')
-        self.assertEqual(permission(self.root), 'continue')
-        finish_or_wait(self.root)
+        self.assertEqual(result, {})
         self.assertEqual(permission(self.root), 'idle')
+        self.assertFalse((self.root/'continue_HQ').exists())
+        user_command(self.root,'enable')
+        finish_or_wait(self.root)
+        self.assertEqual(permission(self.root), 'stopped')
+        self.assertTrue((self.root/'continue_HQ').exists())
 
 
 if __name__ == '__main__':

@@ -18,7 +18,7 @@ class SetupSharedTests(unittest.TestCase):
             for i,root in enumerate(roots):
                 memory=root/'coordination/cd5';memory.mkdir(parents=True)
                 (memory/'CHECKPOINT.json').write_text(json.dumps({'owner':{'thread_id':'owner'+str(i)}}),encoding='utf-8')
-                flags=memory/'goal-control';flags.mkdir();(flags/'stop_planner').touch()
+                flags=memory/'goal-control';flags.mkdir();(flags/'suspend_HQ').touch()
             with patch('tools.setup_shared_continuator.subprocess.run',return_value=SimpleNamespace(returncode=0,stdout='{"authorized":true}')):
                 for root in roots:
                     setup(home,root,hooks,Path(directory)/'cache',Path(directory)/'mac','gpt-6.1-sol')
@@ -32,8 +32,8 @@ class SetupSharedTests(unittest.TestCase):
             self.assertEqual(len(actual['UserPromptSubmit']),1)
             for root in roots:
                 flags=root/'coordination/cd5/goal-control'
-                self.assertTrue((flags/'stop_planner').exists())
-                self.assertFalse((flags/'continue_planner').exists())
+                self.assertTrue((flags/'suspend_HQ').exists())
+                self.assertFalse((flags/'continue_HQ').exists())
             self.assertFalse((home/'PROCESS.json').exists())
             self.assertFalse((home/'LOGON-BEFORE.json').exists())
 

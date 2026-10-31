@@ -53,7 +53,7 @@ def setup(home, root, hooks_file, cache, mac_script, model, install_logon=False)
         shutil.copy2(source/name, frozen/name)
     command = subprocess.list2cmdline([sys.executable, '-X', 'utf8', str(frozen/'continuator_hook.py'), '--home', str(home)])
     group = {'hooks': [dict(type='command', command=command, timeout=4,
-                           statusMessage='CD5 controls: Continue Planner / Stop Planner') ]}
+                           statusMessage='CD5 controls: Continuator on/off; HQ start/suspend') ]}
     definition = dict(hooks={e:[group] for e in ('SessionStart', 'UserPromptSubmit', 'Interrupt')})
     current = read(hooks_file) if hooks_file.exists() else {'hooks':{}}
     original = json.dumps(current, ensure_ascii=False)

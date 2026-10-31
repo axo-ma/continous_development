@@ -1,6 +1,6 @@
 # CD5 lifecycle
 
-For continuous HQ work, follow [Stop Planner / Continue Planner](file-continuation.md).
+For continuous HQ work, follow [Continuator и приостановка HQ](file-continuation.md).
 The hidden service is per user OS login and processes explicitly enrolled HQs one
 at a time. It reads only the saved continuation flags, known busy state, and fresh
 quota gate, then sends at most one continuation to the current planner chat found
@@ -9,27 +9,25 @@ project goal; the application's native agent Goal is not a CD5 driver. Do not
 create, resume, update, or clear native Goal state, and do not add another
 continuation mechanism. Each HQ retains its five canonical memory files.
 
-The HQ owns its continuation flags and project state. Remove continue_planner when the
-expected work is complete or a user answer is required. At quota>=90 preserve
-continue_planner, save a concise checkpoint and finish the turn; do not poll,
-sleep, or launch a successor to wait out quota. Preserve STOP, protocol, budgets,
-owner, and other HQs' memory. Never change another HQ's flags or native Goal
-history.
+The user owns continue_HQ. Change it only for explicit Continuator enable/disable.
+HQ owns suspend_HQ: create it before expected completion or a required user answer.
+User start/continue removes it; Interrupt and user stop create it. At quota>=90
+change neither file; checkpoint and finish the turn. Never poll/sleep until reset.
+Preserve other HQs' flags, permissions, budgets and native Goal history.
 
 The separate legacy [Planner control](planner-control.md) integration is not a
 second driver for an HQ enrolled in the continuation service. For that workflow,
-the service admission gates and HQ-owned Continue flag in file-continuation.md
+the service admission gates and user-owned Continuator enable flag in file-continuation.md
 control continuation.
 
 At the start and before each substantive stage, read project instructions, OUTLINE, CHECKPOINT, and only the relevant linked KNOWLEDGE, EVIDENCE, and ATTENTION records. Establish the current owner, goal, next useful action, STOP, and applicable limits. Read fresh quota and native activity status where the project requires them. Unknown quota or activity is not clearance.
 
 An explicit user STOP remains in force until the user resumes it. Turning CD5 off pauses CD5 activity; it does not erase the goal, change STOP, or alter MAC. Turning CD5 on resumes only within existing scope and authorization. A workflow or memory change never authorizes a new run.
 
-For CD5 off, save CHECKPOINT.cd5.enabled=false and remove continue_planner; leave
-stop_planner intact. CD5 on saves enabled=true but does not clear Stop or create
-Continue automatically. Only explicit user Continue Planner reopens continuation.
-Do not restore legacy wakeups or create a second driver. CD5 status reports the
-actual flags, owner, next action and shared service state; unknown remains unknown.
+For CD5 off, save CHECKPOINT.cd5.enabled=false and create suspend_HQ. Do not
+alter continue_HQ. CD5 on does not clear suspension or enable Continuator.
+Only explicit user HQ start/continue clears suspension. Continuator enable and
+HQ start are independent commands. CD5 status reports both actual flags.
 
 When a project uses the 90% quota gate, read the fresh five-hour (300-minute) account window, not the weekly window or context occupancy, before work and between bounded stages. At usedPercent >= 90, stop admitting substantive work and finish the HQ turn after a minimal durable checkpoint and final status. Missing quota is not clearance. This is a terminal boundary for the current turn, not an instruction to keep the chat running until reset.
 
@@ -55,10 +53,9 @@ can recommend `select_next_action` from explicitly authorized, useful,
 unblocked `ready_actions` requiring no human input. Save that selection and repeat
 normal admission before execution; selection itself grants no run permission.
 STOP, quota and actual unknown activity remain controlling. Pause for a human
-answer only when it is required for all remaining useful permitted work. Keep
-continue_planner active at ordinary useful-work boundaries when permitted work remains.
-Remove it when a user decision is required or all authorized work is complete.
-Quota closure preserves it; the existing service automatically resumes once fresh
-quota is below90. Only a manual Stop requires a new explicit Continue Planner.
+answer only when it is required for all remaining useful permitted work.
+Then create suspend_HQ with the reason in CHECKPOINT; do the same when all
+currently authorized work is complete. Do not alter continue_HQ. Quota closure
+changes neither flag: the service automatically resumes below90 if not suspended.
 
 Before advancing the plan, follow [outline](outline.md). After accepted significant results or scope changes, reconcile affected risks, dependencies, milestone outcomes and the active plan; a completed CU does not itself close a milestone. Preserve earlier criteria and outcomes as history.

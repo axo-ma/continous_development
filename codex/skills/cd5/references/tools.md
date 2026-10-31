@@ -1,7 +1,7 @@
 # Portable command-line tools
 
 For CD5 continuation flags, service admission and HQ completion behavior, follow
-[Stop Planner / Continue Planner](file-continuation.md). The native Goal material is
+[Continuator и приостановка HQ](file-continuation.md). The native Goal material is
 retained as a historical reference only; these tools do not create, resume, or
 modify native Goal state for CD5. The agreed project goal and current work remain
 in canonical CD5 memory.
