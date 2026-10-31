@@ -82,6 +82,16 @@ class SharedTests(unittest.TestCase):
         self.service.step()
         self.assertEqual(self.sends,[])
 
+    def test_second_hq_also_follows_its_current_owner(self):
+        user_command(self.flags(1),'continue')
+        self.service.step()
+        cp=self.roots[1]/'coordination/cd5/CHECKPOINT.json'
+        cp.write_text(json.dumps({'owner':{'thread_id':'new-owner'}}),encoding='utf-8')
+        self.service.step()
+        self.assertEqual(self.sends,[('owner2','owner2'),('new-owner','new-owner')])
+        self.assertEqual(handle(dict(session_id='owner2',hook_event_name='Interrupt'),self.home,{}),{})
+        self.assertFalse((self.flags(1)/'stop_planner').exists())
+
     def test_unenrolled_chat_does_not_touch_any_flags(self):
         self.assertEqual(handle(dict(session_id='unrelated',hook_event_name='UserPromptSubmit',prompt='Continue Planner'),self.home,{}),{})
         self.assertFalse(any(self.flags(n).exists() for n in range(2)))
