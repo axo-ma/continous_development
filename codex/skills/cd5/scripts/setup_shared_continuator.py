@@ -45,7 +45,7 @@ def setup(home, root, hooks_file, cache, mac_script, model, install_logon=False)
     source = Path(__file__).resolve().parent
     names = ('continuator_hook.py', 'shared_continuator.py', 'planner_file_hook.py',
              'planner_controls.py', 'desktop_tools_bridge.py', 'file_continuation_service.py',
-             'planner_control.py', 'cd5_config.py', 'stop_hook_trial.py')
+             'planner_control.py', 'cd5_config.py', 'stop_hook_trial.py', 'continuator_runtime.py')
     digest = hashlib.sha256(b''.join((source/n).read_bytes() for n in names)).hexdigest()
     frozen = home/('hooks-'+digest[:16])
     frozen.mkdir(exist_ok=True)
@@ -83,18 +83,13 @@ def setup(home, root, hooks_file, cache, mac_script, model, install_logon=False)
     if install_logon:
         if os.name != 'nt' or not Path(sys.executable).with_name('pythonw.exe').is_file():
             raise ValueError('Windows pythonw required')
-        import winreg
-        with winreg.CreateKey(winreg.HKEY_CURRENT_USER, r'Software\Microsoft\Windows\CurrentVersion\Run') as key:
-            try:
-                previous, _ = winreg.QueryValueEx(key, 'CD5 Continuator')
-            except FileNotFoundError:
-                previous = None
-            if not (home/'LOGON-BEFORE.json').exists():
-                atomic(home/'LOGON-BEFORE.json', dict(previous=previous))
-            winreg.SetValueEx(key, 'CD5 Continuator', 0, winreg.REG_SZ, launcher)
-            installed, _ = winreg.QueryValueEx(key, 'CD5 Continuator')
-            assert installed == launcher
+        subprocess.run(['powershell.exe', '-NoProfile', '-NonInteractive', '-File',
+            str(source/'install_continuator_task.ps1'), '-HomeDirectory', str(home),
+            '-PythonExecutable', sys.executable], check=True, capture_output=True, text=True,
+            encoding='utf-8', timeout=30)
         receipt['logon_installed'] = True
+        receipt['started'] = True
+        receipt['recovery_mechanism'] = 'Windows Task Scheduler'
     atomic(home/'SETUP.json', receipt)
     return receipt
 

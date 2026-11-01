@@ -16,7 +16,7 @@ HQ creates suspend_HQ only at whole-plan completion or an evidenced mandatory hu
 continue_HQ by its own decision. Quota>=90 changes neither file: finish the turn;
 one shared hidden service waits without a model and resumes below90 when admitted.
 The service sends only «Продолжай». Read [continuation](references/file-continuation.md).
-One service per Windows user handles explicitly enrolled HQs sequentially, using
+One Windows Scheduled Task manages logon and process recovery, with one service per user. See [recovery](references/continuator-recovery.md). The service handles enrolled HQs sequentially, using
 CHECKPOINT.owner.thread_id. Each HQ keeps its five memory files. Native agent
 Goal is not the CD5 driver; do not create, resume, update or clear it for CD5.
 Installation alone never enrolls, enables or starts an HQ.

@@ -6,18 +6,21 @@ import os
 from pathlib import Path
 import sys
 import time
+import traceback
 try:
     from .cd5_config import memory_dir
     from .desktop_tools_bridge import DesktopBridge
     from .file_continuation_service import FileService
     from .planner_controls import permission
     from .planner_control import atomic, locked, read
+    from .continuator_runtime import Diagnostics, health
 except ImportError:
     from cd5_config import memory_dir
     from desktop_tools_bridge import DesktopBridge
     from file_continuation_service import FileService
     from planner_controls import permission
     from planner_control import atomic, locked, read
+    from continuator_runtime import Diagnostics, health
 
 
 def projects(registry):
@@ -50,8 +53,10 @@ def current_project(entry, root):
 
 
 class SharedService:
-    def __init__(self, home, bridge):
+    def __init__(self, home, bridge, diagnostics=None):
         self.home, self.bridge = Path(home), bridge
+        self.diagnostics = diagnostics
+        self.connection_failed = False
 
     def step(self):
         results = []
@@ -78,7 +83,11 @@ class SharedService:
                     if actual != owner:
                         raise RuntimeError('owner changed during observation')
                     self.bridge.caller = owner
-                    return real_call(name, args)
+                    try:
+                        return real_call(name, args)
+                    except Exception:
+                        self.connection_failed = True
+                        raise
                 class Bound:
                     call = staticmethod(bound_call)
                 if 'trial_limit' in entry:
@@ -90,6 +99,8 @@ class SharedService:
                 results.append(dict(root=str(root), owner=owner, used=result['used'], reason=result['reason']))
             except Exception as error:
                 results.append(dict(root=str(root), reason='unavailable_no_send', error=type(error).__name__))
+                if self.diagnostics:
+                    self.diagnostics.error('project:'+str(root), error)
         return results
 
 
@@ -105,20 +116,32 @@ def connection(home):
 
 def run(home, seconds=None):
     home = Path(home)
-    home.mkdir(parents=True, exist_ok=True)
-    # Independent of configuration/home: only one instance for this Windows user.
-    with locked(Path.home()/'.codex/cd5-continuator/instance'):
-        atomic(home/'PROCESS.json', dict(pid=os.getpid(), started_at=time.time(), service='shared'))
-        deadline = None if seconds is None else time.monotonic()+seconds
-        bridge, fingerprint, next_health = None, None, 0
-        try:
+    diagnostics = Diagnostics(home)
+    diagnostics.event('starting')
+    exit_reason = 'normal'
+    bridge = None
+    def close_bridge():
+        nonlocal bridge
+        if bridge is not None:
+            try:
+                bridge.close()
+            except Exception as error:
+                diagnostics.error('close_connection', error)
+            bridge = None
+    try:
+        # OS releases this per-user lock after an abnormal process exit.
+        with locked(Path.home()/'.codex/cd5-continuator/instance'):
+            deadline = None if seconds is None else time.monotonic()+seconds
+            fingerprint, next_health, failures = None, 0, 0
+            diagnostics.event('started')
             while deadline is None or time.monotonic() < deadline:
+                diagnostics.write(home/'PROCESS.json', diagnostics.identity, atomic)
+                diagnostics.write(home/'HEARTBEAT.json', dict(diagnostics.identity, observed_at=time.time(), state='checking'), atomic)
                 state = dict(pid=os.getpid(), observed_at=time.time(), projects=[])
                 try:
                     descriptor, current = connection(home)
                     if current != fingerprint and bridge is not None:
-                        bridge.close()
-                        bridge = None
+                        close_bridge()
                     if bridge is None:
                         # OS-login process needs no inherited Codex environment.
                         env = {k: v for k, v in os.environ.items() if not k.startswith('CODEX_')}
@@ -131,32 +154,52 @@ def run(home, seconds=None):
                         bridge.caller = descriptor['publisher']
                         bridge.call('get_usage_limits', {})  # Real host, not just local MCP initialization.
                         next_health = time.monotonic()+30
-                    state.update(reason='connected', projects=SharedService(home, bridge).step())
+                    service = SharedService(home, bridge, diagnostics)
+                    state.update(reason='connected', projects=service.step())
+                    if service.connection_failed:
+                        raise RuntimeError('Desktop connection failed during project observation')
+                    failures = 0
                 except Exception as error:
                     state.update(reason='waiting_for_desktop', error=type(error).__name__)
-                    if bridge is not None:
-                        bridge.close()
-                    bridge = None
-                atomic(home/'STATUS.json', state)
-                time.sleep(2)
-        finally:
-            if bridge is not None:
-                bridge.close()
+                    diagnostics.error('service_cycle', error)
+                    failures = min(failures+1, 5)
+                    close_bridge()
+                diagnostics.transition(state['reason'])
+                state['observed_at'] = time.time()
+                stored = diagnostics.write(home/'STATUS.json', state, atomic)
+                diagnostics.write(home/'HEARTBEAT.json', dict(diagnostics.identity, observed_at=time.time(),
+                    state=state['reason'], status_write_ok=stored), atomic)
+                time.sleep(min(30, 2**failures) if failures else 2)
+    except BaseException as error:
+        exit_reason = type(error).__name__
+        diagnostics.event('fatal', error_type=exit_reason, traceback=traceback.format_exc()[-6000:])
+        raise
+    finally:
+        close_bridge()
+        diagnostics.event('exiting', reason=exit_reason)
+        diagnostics.write(home/'EXIT.json', dict(diagnostics.identity, exited_at=time.time(), reason=exit_reason), atomic)
+        diagnostics.close()
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--home', type=Path, required=True)
     parser.add_argument('--seconds', type=int)
+    parser.add_argument('--health', action='store_true')
     args = parser.parse_args()
     if args.seconds is not None and not 1 <= args.seconds <= 600:
         parser.error('test seconds must be1–600')
+    if args.health:
+        result = health(args.home)
+        print(json.dumps(result))
+        return 0 if result['healthy'] else 1
     try:
         run(args.home, args.seconds)
     except PermissionError:
-        # OS login and manual launch may coincide: the already-running one owns it.
-        return
+        # Already logged with traceback; report failure so Windows can recover.
+        return 1
+    return 0
 
 
 if __name__ == '__main__':
-    main()
+    raise SystemExit(main())
