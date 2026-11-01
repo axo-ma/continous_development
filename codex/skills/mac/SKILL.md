@@ -6,11 +6,11 @@ description: Coordinate optional, bounded work with native subagents under one s
 # Multi-Agent Chat (MAC)
 
 When MAC is used inside CD5, the agreed goal and milestones remain in the HQ's
-canonical memory. CD5's shared Continuator and Stop Planner / Continue Planner are the
+canonical memory. CD5's shared Continuator and continue_HQ / suspend_HQ controls are the
 only continuation mechanism there; primary and delegated agents must not add
 native agent Goals or competing wakeups as CD5 drivers. MAC remains independent
 and never changes CD5 continuation flags merely because delegation is enabled.
-Quota>=90 is a temporary service gate: preserve continue_planner, finish the model
+Quota>=90 is a temporary service gate: preserve both continue_HQ and suspend_HQ, finish the model
 turn, and let the single Continuator resume automatically when fresh quota<90.
 
 Use MAC when the user invokes a MAC command or a useful separable task makes delegation worthwhile. The primary remains the current chat and owns scope, coordination, integration, and consequential decisions. Avoid delegation when the task is too small to benefit.
@@ -23,4 +23,6 @@ Select models and reasoning effort from current availability and local settings.
 
 When the user restricts models, store their exact IDs in local settings under `model_policy.allowed_models`. Before every assignment, including nested helpers and thread model overrides, run `scripts/mac_settings.py check-model --model <exact-id>` (add `--role <role>` when selecting a configured role). Only a successful result permits that assignment. Pass that exact model to the host; never use an implicit inherited/default model, alias, downgrade or retry with another model after rejection. A missing/invalid policy or forbidden configured role fails closed. Availability must still be checked separately. This is a checked MAC workflow boundary, not a provider-wide lock on unrelated Desktop chats, direct tool calls or another client's API requests. Do not claim a universal application-level prohibition from a Python guard. Historical tariffs and journal model names are evidence, not permission to select them.
 
-The executor owns a complete bounded result; a helper performs a limited step. Delegate when the result can be accepted independently and brief/review cost is justified. Main roles retain evaluation, acceptance and substantive conclusions. Every helper brief forbids further delegation. Before any budget change return to the primary. All helpers consume their caller's allocated budget, not a new budget. Read [accounting](references/accounting.md) when reporting participant usage.
+The executor owns a complete bounded result; a helper performs a limited step. Delegate when the result can be accepted independently and brief/review cost is justified. Main roles retain evaluation, acceptance and substantive conclusions. Every helper brief forbids further delegation. Before changing the assigned internal budget, the worker returns to the primary HQ, not the human user. Within the assigned plan HQ may revise internal allocations/protocol versions and continue without renewed human approval. Actual user caps and mandatory system permissions remain binding. A forecast is not a cap; a failed or exhausted internal attempt requires HQ repair, not a permission question. All helpers consume their caller's allocated budget, not a new budget. Read [accounting](references/accounting.md) when reporting participant usage.
+
+Under CD5 follow references/hq-authority.md of the installed CD5. Completing an assignment/CU does not complete the whole plan. Human gold is a provenance label requiring human evaluation; absence of it never prohibits using honestly labelled agent assessments or continuing work.

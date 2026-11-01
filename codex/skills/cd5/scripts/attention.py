@@ -48,7 +48,9 @@ def _prompt(item: dict, owner: dict) -> str:
             f"Current owner from CHECKPOINT: {owner.get('role', 'unknown')} "
             f"({owner.get('thread_id', 'unknown')}). The explanation or button click is not a "
             "decision, approval, consent, human gold, or authorization to run work. Do not resolve "
-            "the question or change memory; state what answer is needed from the user.")
+            "the question or change memory. First verify whether a cited user/system rule really "
+            "requires a human answer. If not, identify it as an HQ decision and continue permitted work; "
+            "do not ask the user to authorize an internal protocol, forecast or retry.")
 
 
 def list_items(root: str | Path) -> dict:
@@ -56,9 +58,7 @@ def list_items(root: str | Path) -> dict:
     checkpoint = _checkpoint(base)
     owner = checkpoint.get("owner") or {}
     items = pending_attention(base)
-    if checkpoint.get("user_stop", {}).get("active") or checkpoint.get("next_action", {}).get("kind") == "wait_user":
-        for item in items:
-            item["status"] = "blocking"
+    # A wait_user label or STOP does not make every unrelated question a human gate.
     for item in items:
         item["owner"] = {k: owner.get(k) for k in ("role", "thread_id", "configured_model") if owner.get(k)}
         item["request_prompt"] = _prompt(item, owner)
@@ -66,8 +66,10 @@ def list_items(root: str | Path) -> dict:
     required_question = checkpoint.get("blocker", {}).get("human_question")
     if isinstance(required_question, str) and required_question.strip():
         if not any(x["question"].strip() == required_question.strip() for x in items):
-            diagnostic = "CHECKPOINT requires a human answer but ATTENTION has no matching question: " + required_question
-    return {"items": items, "diagnostic": diagnostic, "checkpoint_status": "unavailable" if diagnostic else "read"}
+            diagnostic = "CHECKPOINT mentions a question without a matching attention item; HQ must inspect its actual source: " + required_question
+    return {"items": items, "human_items": [x for x in items if x['requires_human']],
+            "owner_actions": [x for x in items if not x['requires_human']],
+            "diagnostic": diagnostic, "checkpoint_status": "unavailable" if checkpoint.get('diagnostic') else "read"}
 
 
 def show_item(root: str | Path, item_id: str) -> dict:
@@ -99,7 +101,7 @@ def render_board(data: dict) -> str:
     empty_markup = '<p id="empty">Нет отображаемых вопросов. Проверьте диагностику, если она указана.</p>'
     return f'''<!doctype html>
 <html lang="ru"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Требует ответа · CD5</title>
+<title>Внимание штаба · CD5</title>
 <style>
 :root{{color-scheme:light dark}}body{{margin:0;padding:12px;background:transparent;color:inherit;font:16px/1.5 system-ui,sans-serif}}
 main{{max-width:720px}}article{{display:grid;grid-template-columns:72px 1fr;gap:12px;padding:12px 0;border-bottom:1px solid #8886}}
@@ -107,7 +109,7 @@ main{{max-width:720px}}article{{display:grid;grid-template-columns:72px 1fr;gap:
 .meta{{margin:8px 0;font-size:13px;opacity:.8;overflow-wrap:anywhere}}button{{font:600 15px system-ui;padding:10px 14px;border:1px solid #b8770c;border-radius:8px;background:#eeb43f;color:#251b09;cursor:pointer}}
 button:focus-visible{{outline:3px solid #e3a229;outline-offset:3px}}[hidden]{{display:none!important}}
 @media(max-width:420px){{article{{grid-template-columns:48px 1fr;gap:8px}}.icon{{font-size:38px}}}}
-</style><main><h1>Нужен ответ пользователя</h1>{diagnostic_markup}{empty_markup}<section id="items"></section>
+</style><main><h1>Внимание штаба</h1>{diagnostic_markup}{empty_markup}<section id="items"></section>
 <script type="application/json" id="attention-data">{encoded}</script>
 <script>
 (()=>{{const data=JSON.parse(document.getElementById('attention-data').textContent),host=document.getElementById('items');

@@ -369,7 +369,12 @@ def pending_attention(root):
   if not isinstance(question,str) or not question.strip(): continue
   title=payload.get('title')
   if not isinstance(title,str) or not title.strip(): title='Вопрос требует ответа'
-  blocking=(row.get('status')=='blocking' or payload.get('blocking') is True
+  try:
+   from .decision_authority import human_requirement
+  except ImportError:
+   from decision_authority import human_requirement
+  requires_human=human_requirement(payload)
+  blocking=requires_human and (row.get('status')=='blocking' or payload.get('blocking') is True
             or payload.get('status')=='blocking')
   refs=[]
   for key in ('source_refs','sources','refs'):
@@ -378,7 +383,10 @@ def pending_attention(root):
   for key in ('report','source'):
    value=payload.get(key)
    if isinstance(value,str) and value.strip(): refs.append(value)
-  item={'id':row['id'],'status':'blocking' if blocking else 'needs_answer',
+  item={'id':row['id'],'status':'blocking' if blocking else ('needs_answer' if requires_human else 'owner_action'),
+        'requires_human':requires_human,
+        'constraint_source':payload.get('constraint_source'),
+        'human_constraint_evidence':payload.get('human_constraint_evidence'),
         'title':title.strip(),'question':question.strip(),'source_refs':list(dict.fromkeys(refs))}
   out.append(item)
  return sorted(out,key=lambda item:item['id'])

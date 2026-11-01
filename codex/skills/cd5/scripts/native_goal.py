@@ -1,4 +1,6 @@
-"""Read-only CD5/native Goal admission plan. Never calls models or mutates goals.
+"""Historical native-Goal fixture; never the active CD5 continuation driver.
+
+Read-only CD5/native Goal admission plan. Never calls models or mutates goals.
 
 The current owner executes returned actions through native Goal tools, respecting
 their authorization contract, and reads back the result. Files are observations,

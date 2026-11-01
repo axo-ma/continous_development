@@ -1,5 +1,20 @@
-# Human attention
+# Внимание штаба и действительные вопросы человеку
 
-Keep an unresolved human decision in the current ATTENTION record and make its question visible when it blocks progress. Use the supported interactive card or attention view when available. If it is unavailable, state plainly that the view is unavailable and present the question and choices directly; never claim a working button, link, or persistent display without verifying it.
+Сначала применить [полномочия HQ](hq-authority.md). Запись decision/blocking/wait_user
+не создаёт обязанности спрашивать пользователя. Протокол, исправление ошибки,
+внутренняя попытка, прогноз и приёмка результата — решения HQ в порученном плане.
 
-Ask one clear question with a small set of understandable choices when that fits the decision. Include the concrete facts and short context needed to answer. Do not treat a display, click, explanation request, or lack of response as consent, approval, or human gold. Close the item and update checkpoint only after the user actually decides. A decision authorizes only what it says; it does not automatically clear unrelated STOPs or approve additional work.
+Перед обязательным вопросом проверить конкретное действующее требование пользователя
+или системы. Сохранить constraint_source и human_constraint_evidence с проверяемой
+ссылкой/цитатой. Если источник не подтверждён, это owner_action, а не блокировка.
+Старые записи и историю не удалять. При необходимости владелец дописывает уточнение,
+что прежний вопрос оказался внутренним решением, не приписывая человеку ответ.
+
+Нельзя останавливать весь план из-за вопроса одной ветки, если есть полезная
+независимая работа. Только если реальное требование блокирует всё оставшееся,
+записать blocks_all_work=true, сохранить причину и suspend_HQ, задать один простой
+вопрос с коротким контекстом. Не просить ещё раз разрешить то, что уже поручено.
+
+Человеческую оценку не выдумывать: показ, объяснение, клик или молчание не являются
+ею. Это правило честности эталона, а не запрет на использование агентной оценки
+или продолжение разработки. Отсутствие human gold само по себе не human gate.

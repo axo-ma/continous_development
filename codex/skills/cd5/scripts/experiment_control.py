@@ -19,14 +19,18 @@ from pathlib import Path
 
 try:
     from .experiment_registry import append_event, build_event, read_events, RegistryError
+    from .decision_authority import human_requirement, whole_plan_complete
 except ImportError:
     from experiment_registry import append_event, build_event, read_events, RegistryError
+    from decision_authority import human_requirement, whole_plan_complete
 
 
 
 
 class ControlError(ValueError):
-    pass
+    def __init__(self, message, action='inspect_in_hq'):
+        super().__init__(message)
+        self.action = action
 
 
 def stopped(state):
@@ -42,12 +46,17 @@ def route(state, *, planner_status='idle', executor_status='idle', used_percent=
         return {'action': 'inspect_state', 'reason': 'unsupported state schema'}
     if state.get('cd5', {}).get('enabled') is False:
         return {'action': 'wait_cd5_disabled', 'reason': 'CD5 workflow paused independently of MAC'}
-    if state.get('goal_status') == 'verified_complete':
+    if whole_plan_complete(state):
         return {'action': 'complete', 'reason': 'whole-goal completion recorded'}
     if ordinary_allowed is False or (used_percent is not None and used_percent >= 90):
         return {'action': 'wait_quota', 'reason': 'checkpoint; reuse only authorized wakeup'}
     if ordinary_allowed is not True or used_percent is None:
         return {'action': 'quota_unknown', 'reason': 'fresh quota required'}
+    blocker = state.get('blocker') or {}
+    ready = any(isinstance(a, dict) and a.get('authorized') is True and a.get('useful') is True
+                and not a.get('blocked') and not a.get('requires_human') for a in state.get('ready_actions', []))
+    if human_requirement(blocker) and blocker.get('blocks_all_work') is True and not ready:
+        return {'action': 'wait_required_constraint', 'reason': 'evidenced user/system requirement blocks all permitted work'}
     active = {'active', 'running', 'inprogress', 'in_progress', 'working'}
     idle = {'idle', 'completed', 'notloaded', 'not_loaded', 'done'}
     ps, es = str(planner_status or '').strip().lower(), str(executor_status or '').strip().lower()
@@ -111,7 +120,7 @@ def run_task(root, task_id, command):
             raise ControlError('CD5 workflow is paused')
         task = state.get('active_task') or {}
         if task.get('id') != task_id or task.get('status') != 'authorized':
-            raise ControlError('matching authorized active task required')
+            raise ControlError('matching HQ-authorized active task required; no extra human approval implied')
         if command != task.get('command') or not command or not all(isinstance(x, str) for x in command):
             raise ControlError('argv must exactly match planner-frozen command')
         for key in ('question', 'evidence_gap', 'prior_evidence', 'novelty_reason', 'acceptance_criteria'):
@@ -120,12 +129,33 @@ def run_task(root, task_id, command):
         protocol = local_file(root, task['protocol_path'])
         digest = hashlib.sha256(protocol.read_bytes()).hexdigest()
         if digest != task.get('protocol_sha256'):
-            raise ControlError('protocol changed after approval')
+            raise ControlError('protocol differs from HQ snapshot; prepare a new version, never rewrite history', 'revise_in_hq')
         events = [e for e in read_events(root) if e['experiment_id'] == task_id]
         starts = [e for e in events if e['event_type'] == 'execution_started']
+        freezes = [e for e in events if e['event_type'] == 'protocol_frozen']
+        user_caps = [task.get('user_max_attempts')] + [e.get('machine_facts', {}).get('user_max_attempts') for e in freezes]
+        if task.get('user_max_attempts') is not None and (type(task['user_max_attempts']) is not int or task['user_max_attempts'] < 0):
+            raise ControlError('invalid explicit user attempt limit; inspect its source in HQ')
+        user_caps = [n for n in user_caps if type(n) is int and n >= 0]
+        if user_caps and len(starts) >= min(user_caps):
+            raise ControlError('explicit user attempt limit reached; preserve it and continue other permitted work', 'respect_user_limit')
         maximum = task.get('max_attempts')
         if isinstance(maximum, bool) or not isinstance(maximum, int) or maximum < 1 or len(starts) >= maximum:
-            raise ControlError('attempt budget exhausted or missing')
+            raise ControlError('HQ attempt allocation exhausted or missing; HQ may version/revise within the assigned plan', 'revise_in_hq')
+        revision = task.get('revision', 1)
+        if type(revision) is not int or revision < 1:
+            raise ControlError('positive HQ revision required', 'revise_in_hq')
+        previous = freezes[-1].get('machine_facts', {}) if freezes else None
+        changed = previous and (previous.get('protocol_sha256') != digest or
+            previous.get('max_attempts', maximum) != maximum or
+            previous.get('command', command) != command or
+            previous.get('revision', 1) != revision)
+        if changed:
+            if revision <= previous.get('revision', 1) or not str(task.get('revision_reason', '')).strip():
+                raise ControlError('changed execution needs a new HQ revision and reason, not human reapproval', 'revise_in_hq')
+            old_paths = {r['path'] for e in freezes for r in e['source_refs'] if r.get('sha256') != digest}
+            if protocol.relative_to(root).as_posix() in old_paths:
+                raise ControlError('keep the old protocol file unchanged; write a new version path', 'revise_in_hq')
         terminals = {e.get('machine_facts', {}).get('start_event_id') for e in events
                      if e['event_type'] in {'execution_completed', 'technical_failed', 'stopped', 'truncated'}}
         if any(e['event_id'] not in terminals for e in starts):
@@ -134,8 +164,12 @@ def run_task(root, task_id, command):
         def record(kind, facts):
             return append_event(root, build_event(task_id, kind, source_paths=[task['protocol_path']],
                 provenance=provenance, machine_facts=facts, root=root))
-        if not any(e['event_type'] == 'protocol_frozen' and any(r.get('sha256') == digest for r in e['source_refs']) for e in events):
+        if not freezes or changed:
             record('protocol_frozen', {'protocol_sha256': digest, 'approved_by': state['owner']['thread_id'],
+                                       'approval_authority': 'hq', 'revision': revision,
+                                       'revision_reason': task.get('revision_reason'),
+                                       'max_attempts': maximum, 'command': command,
+                                       'user_max_attempts': min(user_caps) if user_caps else None,
                                        'question': task['question'], 'evidence_gap': task['evidence_gap'],
                                        'novelty_reason': task['novelty_reason'], 'prior_evidence': task['prior_evidence']})
         start = record('execution_started', {'command': command, 'attempt': len(starts) + 1,
@@ -172,7 +206,7 @@ def main():
                           'next_action': state['next_action'], 'user_stop': stopped(state)}, ensure_ascii=False))
         return 0
     except (ControlError, RegistryError, KeyError, OSError, ValueError) as exc:
-        print(json.dumps({'error': str(exc)}, ensure_ascii=False))
+        print(json.dumps({'error': str(exc), 'next_action': getattr(exc, 'action', 'inspect_in_hq')}, ensure_ascii=False))
         return 2
 
 

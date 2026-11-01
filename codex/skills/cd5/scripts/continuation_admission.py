@@ -1,4 +1,6 @@
-"""One read-only continuation decision. Never resumes, dispatches or starts a service.
+"""Historical native-Goal fixture, not admission for the active shared Continuator.
+
+One read-only continuation decision. Never resumes, dispatches or starts a service.
 
 Caller supplies actual fresh same-host observations, verified worker coverage,
 and the exact checkpoint. This module cannot establish observation provenance.

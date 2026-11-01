@@ -200,7 +200,7 @@ def decide(state, checkpoint, observation, now):
         if not finite(heartbeat) or now - heartbeat < state.get('lease_seconds', 900):
             return 'hold', 'lease active or unknown'
         if state.get('recovery_attempts', 0) >= 1:
-            return 'block', 'repeated crash; human inspection required'
+            return 'block', 'repeated crash; HQ must inspect actual state before another dispatch'
         return 'wake', 'recover once after expired lease and verified native idle'
     return 'wake', 'resume condition satisfied'
 

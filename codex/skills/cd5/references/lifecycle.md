@@ -10,7 +10,7 @@ create, resume, update, or clear native Goal state, and do not add another
 continuation mechanism. Each HQ retains its five canonical memory files.
 
 The user owns continue_HQ. Change it only for explicit Continuator enable/disable.
-HQ owns suspend_HQ: create it before expected completion or a required user answer.
+HQ owns suspend_HQ: create it only at whole-plan completion or an evidenced mandatory user/system requirement blocking all remaining permitted work. See [HQ authority](hq-authority.md).
 User start/continue removes it; Interrupt and user stop create it. At quota>=90
 change neither file; checkpoint and finish the turn. Never poll/sleep until reset.
 Preserve other HQs' flags, permissions, budgets and native Goal history.
@@ -22,7 +22,7 @@ control continuation.
 
 At the start and before each substantive stage, read project instructions, OUTLINE, CHECKPOINT, and only the relevant linked KNOWLEDGE, EVIDENCE, and ATTENTION records. Establish the current owner, goal, next useful action, STOP, and applicable limits. Read fresh quota and native activity status where the project requires them. Unknown quota or activity is not clearance.
 
-An explicit user STOP remains in force until the user resumes it. Turning CD5 off pauses CD5 activity; it does not erase the goal, change STOP, or alter MAC. Turning CD5 on resumes only within existing scope and authorization. A workflow or memory change never authorizes a new run.
+An explicit user STOP remains in force until the user resumes it. Turning CD5 off pauses CD5 activity; it does not erase the goal, change STOP, or alter MAC. Turning CD5 on resumes only within existing scope and authorization. A memory change alone does not expand the user task. The assigned plan authorizes HQ to choose and internally approve its next useful runs and repair versions.
 
 For CD5 off, save CHECKPOINT.cd5.enabled=false and create suspend_HQ. Do not
 alter continue_HQ. CD5 on does not clear suspension or enable Continuator.
@@ -35,11 +35,11 @@ Save the observed percentage, window and reset time when available, pending work
 
 Return a concise final status that the HQ has stopped at the quota boundary and what remains. A later independently authorized invocation may resume only with fresh ordinary usage allowed, five-hour usage below 90%, no user STOP and activity checks clear. Existing authorized wakeups may provide that invocation; do not invent reset IDs or schedules. The skill enforces an agent decision at observable boundaries, not provider-level interruption of an in-flight model/tool call.
 
-For scientific or similarly controlled work, use an accepted frozen protocol that states the question, cases, fixed conditions, criteria, budget, and expected decisions. The executor works within it and records deviations and limits. A change to protocol scope returns to the accountable owner and applicable approval process; do not silently revise a frozen protocol or treat an imported historical protocol as prospectively frozen.
+For controlled work HQ records and internally accepts a versioned protocol: question, cases, conditions, criteria, internal budget and expected decisions. The executor follows that version and returns changes to HQ. HQ can accept a new version within the assigned plan without human reapproval. Keep old versions, attempts and results intact; never describe historical records as prospectively frozen. Direct user constraints and mandatory system permissions remain binding.
 
 At a user-facing work boundary, use the current Control Unit as the reporting group; do not create a start/finish task record for every internal action. Reuse any existing task records and link them to the CU. Read [control units](control-units.md) for recording and Progress Report invocation. Keep measured time and token counts with their source; missing values remain unknown. Do not infer active time from elapsed time, combine parent and child counts with overlapping scope, or treat completion as scientific acceptance.
 
-Continue useful authorized branches when one branch is blocked. Wait only when STOP, quota, unavailable or unknown activity, or exhaustion of useful permitted steps prevents progress. Save the concrete blocker and resume condition, and show a genuine human decision when required.
+Continue useful authorized branches when one branch is blocked. Ordinary stop boundaries are quota>=90 and whole-plan completion. Honor direct user STOP and actual user/system requirements. Unknown activity requires HQ inspection to avoid duplicates; inspect it or continue another permitted branch. A technical fault or internal allocation exhaustion is an HQ repair/revision decision, not a human permission gate.
 
 An intermediate result, a finished CU, or an unavailable optional enhancement is
 not itself a reason to stop the project. Before ending useful work,
@@ -53,7 +53,7 @@ can recommend `select_next_action` from explicitly authorized, useful,
 unblocked `ready_actions` requiring no human input. Save that selection and repeat
 normal admission before execution; selection itself grants no run permission.
 STOP, quota and actual unknown activity remain controlling. Pause for a human
-answer only when it is required for all remaining useful permitted work.
+answer only when a cited actual user/system requirement demands it for all remaining useful permitted work; an agent-created decision/wait_user label is insufficient.
 Then create suspend_HQ with the reason in CHECKPOINT; do the same when all
 currently authorized work is complete. Do not alter continue_HQ. Quota closure
 changes neither flag: the service automatically resumes below90 if not suspended.
